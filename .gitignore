@@ -1,0 +1,5 @@
+*sample
+*.pyc
+old/
+uploaded.log
+parameters/
