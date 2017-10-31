@@ -101,7 +101,6 @@ class StopUseSchema(pl.BaseSchema):
 
     @pre_load
     def convert_NAs(self, data):
-        data['on'] = data['on'].strip()
         for f in data.keys():
             if type(data[f]) == str:
                 data[f] = data[f].strip()
@@ -155,13 +154,15 @@ class StopUseSchema(pl.BaseSchema):
 #The package ID is obtained not from this file but from
 #the referenced settings.json file when the corresponding
 #flag below is True.
+    
+    
 def write_to_csv(filename,list_of_dicts,keys):
     with open(filename, 'w') as output_file:
         dict_writer = csv.DictWriter(output_file, keys, extrasaction='ignore', lineterminator='\n')
         dict_writer.writeheader()
         dict_writer.writerows(list_of_dicts)
 
-def send_data_to_pipeline(schema,list_of_dicts,field_names):
+def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_size=5000):
     specify_resource_by_name = True
     if specify_resource_by_name:
         kwargs = {'resource_name': 'Stop-Use Data (alpha)'}
@@ -210,7 +211,8 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names):
                                       log_status=False,
                                       settings_file=STOP_USE_SETTINGS_FILE,
                                       settings_from_file=True,
-                                      start_from_chunk=0
+                                      start_from_chunk=0,
+                                      chunk_size=chunk_size
                                       ) \
         .connect(pl.FileConnector, target, encoding='utf-8') \
         .extract(pl.CSVExtractor, firstline_headers=True) \
@@ -220,10 +222,7 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names):
               #package_id=package_id,
               #resource_id=resource_id,
               #resource_name=resource_name,
-              key_fields=['date','arrival_time','bus_number'],
-              # A potential problem with making the pin field a key is that one property
-              # could have two different PINs (due to the alternate PIN) though I
-              # have gone to some lengths to avoid this.
+              key_fields=primary_keys,
               method='upsert',
               **kwargs).run()
     log = open('uploaded.log', 'w+')
@@ -292,15 +291,25 @@ field_names = ['stop_sequence_number', #
     'departure_time' #Depart
     ]
 
+
 # Check that field_names and fields_to_publish sets are identical.
 #print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
 assert len(set(field_names) - set(field_names_to_publish)) == 0
 
+#Check that all primary keys are in field_names. # The ETL library should do this.
+primary_keys = ['date','arrival_time','bus_number']
+assert len(set(primary_keys) - set(field_names)) == 0
+
 #fixed_width_file = sys.argv[1]
 filename = 'a_sample' # This is the fixed-width file containing the raw data.
+
+if len(sys.argv) > 1:
+    filename = sys.argv[1]
+
 first_line = 2
 list_of_dicts = []
 n = 0
+chunk_size = 5000
 with open(filename, 'r', newline='\r\n') as f:
     for n,line in enumerate(f):
         if n >= first_line:
@@ -310,12 +319,15 @@ with open(filename, 'r', newline='\r\n') as f:
             named_fields = OrderedDict(zip(field_names,fields))
             list_of_dicts.append(named_fields)
 
-        if len(list_of_dicts) == 5000:
+        if len(list_of_dicts) == chunk_size:
             # Push data to ETL pipeline
-            send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish)
+
+            send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys,chunk_size+1)
             list_of_dicts = []
 
-send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish)
+
+
+send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys)
 #pprint(dict(named_fields))
 #pprint(list_of_dicts)
 
