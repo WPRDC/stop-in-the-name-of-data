@@ -154,6 +154,24 @@ class StopUseSchema(pl.BaseSchema):
 #The package ID is obtained not from this file but from
 #the referenced settings.json file when the corresponding
 #flag below is True.
+def check_for_collisions(list_of_dicts,primary_keys):
+    """This function only checks whether collisions occur among the rows to be 
+    sent in the current chunk. Use this function when rows are overwriting old
+    rows."""
+    from collections import defaultdict
+    counts = defaultdict(int)
+    old_row = {}
+    for d in list_of_dicts:
+        index = tuple([d[k] for k in primary_keys])
+        counts[index] += 1
+        if counts[index] > 1:
+            print("{}: last = {} =>".format(counts[index],index))
+            print("Old row:")
+            pprint(old_row[index])
+            print("New row:")
+            pprint(d)
+        old_row[index] = d
+    
     
     
 def write_to_csv(filename,list_of_dicts,keys):
@@ -321,12 +339,11 @@ with open(filename, 'r', newline='\r\n') as f:
 
         if len(list_of_dicts) == chunk_size:
             # Push data to ETL pipeline
-
+            check_for_collisions(list_of_dicts,primary_keys)
             send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys,chunk_size+1)
             list_of_dicts = []
 
-
-
+check_for_collisions(list_of_dicts,primary_keys)
 send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys)
 #pprint(dict(named_fields))
 #pprint(list_of_dicts)
