@@ -101,6 +101,10 @@ class StopUseSchema(pl.BaseSchema):
 
     @pre_load
     def convert_NAs(self, data):
+        data['on'] = data['on'].strip()
+        for f in data.keys():
+            if type(data[f]) == str:
+                data[f] = data[f].strip()
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
         data = replace_value(data,'stop_name','Not Identified - Cal',None) 
@@ -178,9 +182,11 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names):
     
     write_to_csv(target,list_of_dicts,field_names)
 
-    ntf.seek(0)
-    with open(target,'r') as g:
-        print(g.read()) 
+    # Testing temporary named file:
+    #ntf.seek(0)
+    #with open(target,'r') as g:
+    #    print(g.read()) 
+
     ntf.seek(0)
     #target = '/Users/drw/WPRDC/Tax_Liens/foreclosure_data/raw-seminull-test.csv'
     #target = process_foreclosures.main(input = fixed_width_file)
@@ -197,7 +203,6 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names):
 
     print("Preparing to pipe data from {} to resource {} package ID {} on {}".format(target,list(kwargs.values())[0],package_id,site))
     time.sleep(1.0)
-
 
 
     stop_use_pipeline = pl.Pipeline('stop_use_pipeline',
@@ -288,9 +293,8 @@ field_names = ['stop_sequence_number', #
     ]
 
 # Check that field_names and fields_to_publish sets are identical.
-
-print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
-
+#print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
+assert len(set(field_names) - set(field_names_to_publish)) == 0
 
 #fixed_width_file = sys.argv[1]
 filename = 'a_sample' # This is the fixed-width file containing the raw data.
@@ -313,7 +317,7 @@ with open(filename, 'r', newline='\r\n') as f:
 
 send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish)
 #pprint(dict(named_fields))
-pprint(list_of_dicts)
+#pprint(list_of_dicts)
 
 
 #if __name__ == "__main__":
