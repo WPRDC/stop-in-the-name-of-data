@@ -106,7 +106,7 @@ class StopUseSchema(pl.BaseSchema):
                 data[f] = data[f].strip()
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
-        data = replace_value(data,'stop_name','Not Identified - Cal',None) 
+        #data = replace_value(data,'stop_name','Not Identified - Cal',None) 
         data = replace_value(data,'pattern_variant','NA',None) 
         data = replace_value(data,'actual_run_time','99.90',None) 
 
@@ -161,16 +161,26 @@ def check_for_collisions(list_of_dicts,primary_keys):
     from collections import defaultdict
     counts = defaultdict(int)
     old_row = {}
-    for d in list_of_dicts:
+    old_r = {}
+    total = 0
+    for r,d in enumerate(list_of_dicts):
         index = tuple([d[k] for k in primary_keys])
         counts[index] += 1
+
         if counts[index] > 1:
-            print("{}: last = {} =>".format(counts[index],index))
-            print("Old row:")
+            total += 1
+            print("#{} | {}: last = {} =>".format(r, counts[index],index))
+            print("Old row (with r = {}:".format(old_r[index]))
             pprint(old_row[index])
             print("New row:")
-            pprint(d)
+            if d == old_row[index]:
+                print("       THESE ROWS MATCH EXACTLY.")
+            else:
+                pprint(d)
         old_row[index] = d
+        old_r[index] = r
+    print("{} total collisions found.".format(total))
+    return total
     
     
     
@@ -315,7 +325,9 @@ field_names = ['stop_sequence_number', #
 assert len(set(field_names) - set(field_names_to_publish)) == 0
 
 #Check that all primary keys are in field_names. # The ETL library should do this.
-primary_keys = ['date','arrival_time','bus_number']
+primary_keys = ['date','arrival_time','bus_number','stop_name','on','off','load','latitude','longitude']
+# Stop_name is sometimes converted to None...!
+# Collisions occur if the fourth key is stop_sequence_number.
 assert len(set(primary_keys) - set(field_names)) == 0
 
 #fixed_width_file = sys.argv[1]
