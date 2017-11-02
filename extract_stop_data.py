@@ -100,10 +100,16 @@ class StopUseSchema(pl.BaseSchema):
     #   processing steps, you should put them in the same processing method.
 
     @pre_load
-    def convert_NAs(self, data):
+    def convert_NAs_and_route(self, data):
         for f in data.keys():
             if type(data[f]) == str:
                 data[f] = data[f].strip()
+
+        if data['route'] in route_lookup.keys():
+            data['route'] = route_lookup[data['route']]
+        else:
+            raise ValueError("No real route designation found for route value {}.".format(data['route']))
+
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
         #data = replace_value(data,'stop_name','Not Identified - Cal',None) 
@@ -170,13 +176,15 @@ def check_for_collisions(list_of_dicts,primary_keys):
         if counts[index] > 1:
             total += 1
             print("#{} | {}: last = {} =>".format(r, counts[index],index))
-            print("Old row (with r = {}:".format(old_r[index]))
-            pprint(old_row[index])
+            print("Old row (with r = {}):".format(old_r[index]))
+            #pprint(old_row[index])
             print("New row:")
             if d == old_row[index]:
                 print("       THESE ROWS MATCH EXACTLY.")
             else:
+                print("       These rows differ in one or more fields.")
                 pprint(d)
+
         old_row[index] = d
         old_r[index] = r
     print("{} total collisions found.".format(total))
@@ -325,10 +333,19 @@ field_names = ['stop_sequence_number', #
 assert len(set(field_names) - set(field_names_to_publish)) == 0
 
 #Check that all primary keys are in field_names. # The ETL library should do this.
-primary_keys = ['date','arrival_time','bus_number','stop_name','on','off','load','latitude','longitude']
-# Stop_name is sometimes converted to None...!
+primary_keys = ['date','arrival_time','block_number','stop_name','on','off','load','latitude','longitude']
+# stop_name is sometimes converted to None...!
+# Experimenting with converting route value of 0 to None and using 
+# block_number instead as a primary key.
+
 # Collisions occur if the fourth key is stop_sequence_number.
 assert len(set(primary_keys) - set(field_names)) == 0
+
+with open('RouteDescriptions.csv', mode='r') as infile:
+    reader = csv.reader(infile)
+    route_lookup = {r[1]:r[0] for r in reader}
+
+route_lookup['0'] = None
 
 #fixed_width_file = sys.argv[1]
 filename = 'a_sample' # This is the fixed-width file containing the raw data.
@@ -344,7 +361,7 @@ with open(filename, 'r', newline='\r\n') as f:
     for n,line in enumerate(f):
         if n >= first_line:
             fields = parse(line) 
-            if n == 2:
+            if n == 2 or n==34:
                 pprint(list(zip(field_names,fields)))
             named_fields = OrderedDict(zip(field_names,fields))
             list_of_dicts.append(named_fields)
