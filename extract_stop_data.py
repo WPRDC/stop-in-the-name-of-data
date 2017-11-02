@@ -180,6 +180,7 @@ def check_for_collisions(list_of_dicts,primary_keys):
             #pprint(old_row[index])
             print("New row:")
             if d == old_row[index]:
+                # Aggregate consecutively matched rows into ranges.
                 print("       THESE ROWS MATCH EXACTLY.")
             else:
                 print("       These rows differ in one or more fields.")
@@ -341,7 +342,7 @@ primary_keys = ['date','arrival_time','block_number','stop_name','on','off','loa
 # Collisions occur if the fourth key is stop_sequence_number.
 assert len(set(primary_keys) - set(field_names)) == 0
 
-with open('RouteDescriptions.csv', mode='r') as infile:
+with open('RouteCodes.csv', mode='r') as infile:
     reader = csv.reader(infile)
     route_lookup = {r[1]:r[0] for r in reader}
 
