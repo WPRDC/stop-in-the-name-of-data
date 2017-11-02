@@ -119,7 +119,10 @@ class StopUseSchema(pl.BaseSchema):
     @pre_load
     def fix_times_and_dates(self, data):
         data['date'] =  datetime.datetime.strptime(data['date'], "%m%d%y").date().isoformat()
-        data['departure_time'] = convert_string_to_isotime(data['departure_time'])
+        try:
+            data['departure_time'] = convert_string_to_isotime(data['departure_time'])
+        except:
+            raise ValueError("Unable to convert departure time {}".format(data['departure_time']))
         data['arrival_time'] = convert_string_to_isotime(data['arrival_time'])
 
         data = replace_value(data,'scheduled_stop_time','9999',None)
@@ -164,27 +167,46 @@ def check_for_collisions(list_of_dicts,primary_keys):
     """This function only checks whether collisions occur among the rows to be 
     sent in the current chunk. Use this function when rows are overwriting old
     rows."""
+    global first_match
     from collections import defaultdict
     counts = defaultdict(int)
     old_row = {}
     old_r = {}
     total = 0
+    currently_matching = False
+    current_streak = 0
     for r,d in enumerate(list_of_dicts):
         index = tuple([d[k] for k in primary_keys])
         counts[index] += 1
 
         if counts[index] > 1:
             total += 1
-            print("#{} | {}: last = {} =>".format(r, counts[index],index))
-            print("Old row (with r = {}):".format(old_r[index]))
-            #pprint(old_row[index])
-            print("New row:")
+            #print("#{} | {}: last = {} =>".format(r, counts[index],index))
+            #print("Old row (with r = {}):".format(old_r[index]))
+            ##pprint(old_row[index])
+            #print("New row:")
+            if index in first_match:
+                print("          >>> Another old match was found: {}".format(index))
             if d == old_row[index]:
                 # Aggregate consecutively matched rows into ranges.
-                print("       THESE ROWS MATCH EXACTLY.")
+                if not currently_matching:
+                    if index not in first_match:
+                        first_match.append(index)
+                current_streak += 1
+                currently_matching = True
+                #print("       THESE ROWS MATCH EXACTLY.")
             else:
+                if currently_matching:
+                    print("   !!  Streak ended at {}.".format(current_streak))
+                    current_streak = 0
+                currently_matching = False
                 print("       These rows differ in one or more fields.")
                 pprint(d)
+        else:
+            if currently_matching:
+                print("   **  Streak ended at {}, len(first_match) = {}.".format(current_streak,len(first_match)))
+                current_streak = 0
+            currently_matching = False
 
         old_row[index] = d
         old_r[index] = r
@@ -353,6 +375,8 @@ filename = 'a_sample' # This is the fixed-width file containing the raw data.
 
 if len(sys.argv) > 1:
     filename = sys.argv[1]
+
+first_match = []
 
 first_line = 2
 list_of_dicts = []
