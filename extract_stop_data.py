@@ -109,7 +109,10 @@ class StopUseSchema(pl.BaseSchema):
         if data['route'] in route_lookup.keys():
             data['route'] = route_lookup[data['route']]
         else:
-            raise ValueError("No real route designation found for route value {}.".format(data['route']))
+            if len(data['route']) < 3:
+                print("Send notification that an unknown route has been found.")
+            else:
+                raise ValueError("No real route designation found for route value {}.".format(data['route']))
 
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
