@@ -58,6 +58,7 @@ def convert_string_to_isotime(f):
     return f
 
 class StopUseSchema(pl.BaseSchema): 
+    real_arrival_datetime = fields.DateTime(allow_none=False)
     stop_sequence_number = fields.String(allow_none=True)
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=True)
@@ -118,12 +119,34 @@ class StopUseSchema(pl.BaseSchema):
 
     @pre_load
     def fix_times_and_dates(self, data):
-        data['date'] =  datetime.datetime.strptime(data['date'], "%m%d%y").date().isoformat()
+        day_offset = 0
+        date_object = datetime.datetime.strptime(data['date'], "%m%d%y").date()
+        data['date'] = date_object.isoformat()
         try:
             data['departure_time'] = convert_string_to_isotime(data['departure_time'])
         except:
-            raise ValueError("Unable to convert departure time {}".format(data['departure_time']))
-        data['arrival_time'] = convert_string_to_isotime(data['arrival_time'])
+            if len(data['departure_time']) == 6:
+                original = str(data['departure_time'])
+                data['departure_time'] = str.zfill(str(int(data['departure_time']) - 240000),6)
+                day_offset = 1
+                data['departure_time'] = convert_string_to_isotime(data['departure_time'])
+            else:
+                raise ValueError("Unable to convert departure time {}".format(data['departure_time']))
+
+        try:
+            arrival_time = datetime.datetime.strptime(data['arrival_time'], "%H%M%S").time()
+            data['arrival_time'] = convert_string_to_isotime(data['arrival_time'])
+        except:
+            if len(data['arrival_time']) == 6:
+                original = str(data['arrival_time'])
+                data['arrival_time'] = str.zfill(str(int(data['arrival_time']) - 240000),6)
+                arrival_time = datetime.datetime.strptime(data['arrival_time'], "%H%M%S").time()
+                data['arrival_time'] = convert_string_to_isotime(data['arrival_time'])
+            else:
+                raise ValueError("Unable to convert arrival time {}".format(data['arrival_time']))
+
+        dt = datetime.datetime.combine(date_object, arrival_time) + datetime.timedelta(days=1)
+        data['real_arrival_datetime'] = dt.isoformat()
 
         data = replace_value(data,'scheduled_stop_time','9999',None)
         if data['scheduled_stop_time'] is not None:
@@ -250,8 +273,6 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     ntf.seek(0)
     #target = '/Users/drw/WPRDC/Tax_Liens/foreclosure_data/raw-seminull-test.csv'
     #target = process_foreclosures.main(input = fixed_width_file)
-    print("target = {}".format(target))
-
 
     server = "production"
     # Code below stolen from prime_ckan/*/open_a_channel() but really from utility_belt/gadgets
@@ -351,7 +372,8 @@ field_names = ['stop_sequence_number', #
     ]
 
 
-# Check that field_names and fields_to_publish sets are identical.
+# Check that field_names are all contained within fields_to_publish.
+# (Extra fields may have been added to field_names_to_publish.)
 #print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
 assert len(set(field_names) - set(field_names_to_publish)) == 0
 
