@@ -115,7 +115,7 @@ class StopUseSchema(pl.BaseSchema):
                 print("Send notification that an unknown route has been found.")
             else:
                 error_message = "No real route designation found for route value {}.".format(data['route'])
-                send_to_slack(error_message)
+                send_to_slack("SITNOD: "+error_message)
                 raise ValueError(error_message)
 
         data = replace_value(data,'stop_sequence_number','999',None)
