@@ -30,6 +30,8 @@ except ImportError:
 from collections import OrderedDict
 from pprint import pprint
 
+from notify import send_to_slack
+
 def make_parser(fieldwidths):
     cuts = tuple(cut for cut in accumulate(abs(fw) for fw in fieldwidths))
     pads = tuple(fw < 0 for fw in fieldwidths) # bool values for padding fields
@@ -112,7 +114,9 @@ class StopUseSchema(pl.BaseSchema):
             if len(data['route']) < 3:
                 print("Send notification that an unknown route has been found.")
             else:
-                raise ValueError("No real route designation found for route value {}.".format(data['route']))
+                error_message = "No real route designation found for route value {}.".format(data['route'])
+                send_to_slack(error_message)
+                raise ValueError(error_message)
 
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
