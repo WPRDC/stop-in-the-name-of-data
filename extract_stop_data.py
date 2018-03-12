@@ -314,10 +314,10 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
               **kwargs).run()
     log = open('uploaded.log', 'w+')
     if specify_resource_by_name:
-        print("Piped data to {}".format(kwargs['resource_name']))
+        print("Piped data to {} on {}".format(kwargs['resource_name'],site))
         log.write("Finished upserting {} at {} \n".format(kwargs['resource_name'],datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     else:
-        print("Piped data to {}".format(kwargs['resource_id']))
+        print("Piped data to {} on {}".format(kwargs['resource_id'],site))
         log.write("Finished upserting {} at {} \n".format(kwargs['resource_id'],datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     log.close()
     ntf.close()
