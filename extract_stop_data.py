@@ -304,8 +304,8 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
         .connect(pl.FileConnector, target, encoding='utf-8') \
         .extract(pl.CSVExtractor, firstline_headers=True) \
         .schema(schema) \
-        .load(pl.CKANDatastoreLoader, 'production',
-              fields=fields_to_publish,
+        .load(pl.CKANDatastoreLoader, server,
+              fields=field_names,
               #package_id=package_id,
               #resource_id=resource_id,
               #resource_name=resource_name,
