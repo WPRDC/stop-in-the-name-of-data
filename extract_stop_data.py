@@ -65,8 +65,8 @@ class StopUseSchema(pl.BaseSchema):
     stop_sequence_number = fields.String(allow_none=True)
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=True)
-    route_code = fields.String(load_from='route',allow_none=True)
-    route = fields.String(dump_only=True,allow_none=True)
+    route_decoded = fields.String(allow_none=True)
+    route = fields.String(allow_none=True)
     bus_number = fields.String(allow_none=False) # key
     block_number = fields.String(allow_none=True)
     pattern_variant = fields.String(allow_none=True)
@@ -111,24 +111,25 @@ class StopUseSchema(pl.BaseSchema):
             if type(data[f]) == str:
                 data[f] = data[f].strip()
 
-        if data['route_code'] in route_lookup.keys():
-            data['route'] = route_lookup[data['route_code']]
+        if data['route'] in route_lookup.keys():
+            data['route_decoded'] = route_lookup[data['route']]
         else:
-            data['route'] = None
+            data['route_decoded'] = None
 
-            # [ ] Eventually enable notifications here.
-            route_code = data['route_code']
+            route_code = data['route']
             global missing_route_codes
 
+            # [ ] Eventually enable notifications here.
             if route_code not in missing_route_codes:
                 missing_route_codes[route_code] += 1
-                if len(route_code) < 3:
-                    #print("Send notification that an unknown route has been found.")
-                    print("New unknown route found: {}".format(route_code))
-                else:
+                if route_code is None or len(route_code) >= 3:
                     error_message = "No real route designation found for route value {}.".format(route_code)
+                    print(error_message)
                     #send_to_slack("SITNOD: "+error_message)
                     #raise ValueError(error_message)
+                else:
+                    #print("Send notification that an unknown route has been found.")
+                    print("New unknown route found: {}".format(route_code))
 
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
