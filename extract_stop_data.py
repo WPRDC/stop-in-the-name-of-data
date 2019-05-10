@@ -52,12 +52,20 @@ def replace_value(record,f,old_value,new_value):
 
 def convert_string_to_isotime(f):
     if f is not None:
-        if len(f) == 4:
-            u = datetime.datetime.strptime(f, "%H%M").time().isoformat()
-        else:
-            u = datetime.datetime.strptime(f, "%H%M%S").time().isoformat()
-        f = u
-        return u
+        try:
+            if len(f) == 4:
+                u = datetime.datetime.strptime(f, "%H%M").time().isoformat()
+            else:
+                u = datetime.datetime.strptime(f, "%H%M%S").time().isoformat()
+            f = u
+            return u
+        except ValueError:
+            print("convert_string_to_isotime unable to parse f = {}".format(f))
+            # Results in errors like this:
+            #  convert_string_to_isotime unable to parse f = 241234
+            #  convert_string_to_isotime unable to parse f = 241331
+            #  convert_string_to_isotime unable to parse f = 2410
+            raise
     return f
 
 class StopUseSchema(pl.BaseSchema):
