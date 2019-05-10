@@ -281,7 +281,7 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     #target = '/Users/drw/WPRDC/Tax_Liens/foreclosure_data/raw-seminull-test.csv'
     #target = process_foreclosures.main(input = fixed_width_file)
 
-    server = "production"
+    server = "test-production"
     # Code below stolen from prime_ckan/*/open_a_channel() but really from utility_belt/gadgets
     #with open(os.path.dirname(os.path.abspath(__file__))+'/ckan_settings.json') as f: # The path of this file needs to be specified.
     with open(STOP_USE_SETTINGS_FILE) as f: 
