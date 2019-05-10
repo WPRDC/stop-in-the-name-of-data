@@ -305,7 +305,7 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
         .extract(pl.CSVExtractor, firstline_headers=True) \
         .schema(schema) \
         .load(pl.CKANDatastoreLoader, server,
-              fields=field_names,
+              fields=schema().serialize_to_ckan_fields(capitalize=False),
               #package_id=package_id,
               #resource_id=resource_id,
               #resource_name=resource_name,
