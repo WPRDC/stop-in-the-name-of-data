@@ -68,7 +68,8 @@ class StopUseSchema(pl.BaseSchema):
     block_number = fields.String(allow_none=True)
     pattern_variant = fields.String(allow_none=True)
     date = fields.Date(allow_none=False) # key
-    day_of_week = fields.String(allow_none=True) #day_of_week = fields.String(dump_to='day_of_week_code', allow_none=True)
+    day_of_week = fields.Integer(allow_none=True) #day_of_week = fields.String(dump_to='day_of_week_code', allow_none=True)
+    # The days of the week are ordered, so it makes sense to treat the day of the week as an integer.
 
     # [ ] Which (if any) of these should be datetimes?
     arrival_time = fields.Time(allow_none=True)
