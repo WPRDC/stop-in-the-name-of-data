@@ -413,7 +413,7 @@ first_line = 2
 list_of_dicts = []
 n = 0
 chunk_size = 5000
-total_collisions = 0
+#total_collisions = 0
 with open(filename, 'r', newline='\r\n') as f:
     for n,line in enumerate(f):
         if n >= first_line:
@@ -425,13 +425,13 @@ with open(filename, 'r', newline='\r\n') as f:
 
         if len(list_of_dicts) == chunk_size:
             # Push data to ETL pipeline
-            total_collisions += check_for_collisions(list_of_dicts,primary_keys)
+            #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
             send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys,chunk_size+1)
             list_of_dicts = []
 
-total_collisions += check_for_collisions(list_of_dicts,primary_keys)
+#total_collisions += check_for_collisions(list_of_dicts,primary_keys)
 send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys)
-print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
+#print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
 #pprint(dict(named_fields))
 #pprint(list_of_dicts)
 
