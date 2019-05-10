@@ -386,7 +386,10 @@ field_names = ['stop_sequence_number', #
 assert len(set(field_names) - set(field_names_to_publish)) == 0
 
 #Check that all primary keys are in field_names. # The ETL library should do this.
-primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','on','off','load','latitude','longitude']
+primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','latitude','longitude']
+# Experimenting with a 100k-row sample has shown that this 7-key combination seems to eliminate all the uninteresting duplicates.
+# Adding 'on', 'off', and 'load' does not change the resulting row count (about 97030 rows).
+
 # stop_name is sometimes converted to None...!
 # Experimenting with converting route value of 0 to None and using
 # block_number instead as a primary key.
