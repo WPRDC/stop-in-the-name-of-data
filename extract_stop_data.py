@@ -65,7 +65,7 @@ class StopUseSchema(pl.BaseSchema):
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=True)
     route = fields.String(allow_none=True)
-    bus_number = fields.Integer(allow_none=False) # key
+    bus_number = fields.String(allow_none=False) # key
     block_number = fields.String(allow_none=True)
     pattern_variant = fields.String(allow_none=True)
     date = fields.Date(allow_none=False) # key
