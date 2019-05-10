@@ -385,12 +385,12 @@ field_names = ['stop_sequence_number', #
 assert len(set(field_names) - set(field_names_to_publish)) == 0
 
 #Check that all primary keys are in field_names. # The ETL library should do this.
-primary_keys = ['date','arrival_time','block_number','stop_name','on','off','load','latitude','longitude']
+primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','on','off','load','latitude','longitude']
 # stop_name is sometimes converted to None...!
 # Experimenting with converting route value of 0 to None and using 
 # block_number instead as a primary key.
 
-# Collisions occur if the fourth key is stop_sequence_number.
+# Collisions occur if the fourth key is stop_sequence_number (but leaving it out in favor of stop_name seems to drop more records than is desirable).
 assert len(set(primary_keys) - set(field_names)) == 0
 
 with open('RouteCodes.csv', mode='r') as infile:
