@@ -58,7 +58,7 @@ def convert_string_to_isotime(f):
         return u
     return f
 
-class StopUseSchema(pl.BaseSchema): 
+class StopUseSchema(pl.BaseSchema):
     real_arrival_datetime = fields.DateTime(allow_none=False)
     stop_sequence_number = fields.String(allow_none=True)
     stop_id = fields.String(allow_none=True)
@@ -85,10 +85,10 @@ class StopUseSchema(pl.BaseSchema):
     schedule_deviation = fields.Float(allow_none=True)
     dwell_time = fields.Float(allow_none=True)
 
-    # Never let any of the key fields have None values. It's just asking for 
+    # Never let any of the key fields have None values. It's just asking for
     # multiplicity problems on upsert.
 
-    # [Note that since this script is taking data from CSV files, there should be no 
+    # [Note that since this script is taking data from CSV files, there should be no
     # columns with None values. It should all be instances like [value], [value],, [value],...
     # where the missing value starts as as a zero-length string, which this script
     # is then responsible for converting into something more appropriate.
@@ -98,8 +98,8 @@ class StopUseSchema(pl.BaseSchema):
         ordered = True
 
     # From the Marshmallow documentation:
-    #   Warning: The invocation order of decorated methods of the same 
-    #   type is not guaranteed. If you need to guarantee order of different 
+    #   Warning: The invocation order of decorated methods of the same
+    #   type is not guaranteed. If you need to guarantee order of different
     #   processing steps, you should put them in the same processing method.
 
     @pre_load
@@ -120,9 +120,9 @@ class StopUseSchema(pl.BaseSchema):
 
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
-        #data = replace_value(data,'stop_name','Not Identified - Cal',None) 
-        data = replace_value(data,'pattern_variant','NA',None) 
-        data = replace_value(data,'actual_run_time','99.90',None) 
+        #data = replace_value(data,'stop_name','Not Identified - Cal',None)
+        data = replace_value(data,'pattern_variant','NA',None)
+        data = replace_value(data,'actual_run_time','99.90',None)
 
     @pre_load
     def fix_times_and_dates(self, data):
@@ -178,7 +178,7 @@ class StopUseSchema(pl.BaseSchema):
     #                try:
     #                    data['filing_date'] = datetime.datetime.strptime(data['filing_date'], "%Y-%m-%d %H:%M:%S").date().isoformat()
     #                except:
-    #                    # Try the format I got in one instance when I exported the 
+    #                    # Try the format I got in one instance when I exported the
     #                    # data from CKAN and then reimported it:
     #                     data['filing_date'] = datetime.datetime.strptime(data['filing_date'], "%d-%b-%y").date().isoformat()
     #    else:
@@ -194,9 +194,10 @@ class StopUseSchema(pl.BaseSchema):
 #the referenced settings.json file when the corresponding
 #flag below is True.
 def check_for_collisions(list_of_dicts,primary_keys):
-    """This function only checks whether collisions occur among the rows to be 
+    """This function only checks whether collisions occur among the rows to be
     sent in the current chunk. Use this function when rows are overwriting old
-    rows."""
+    rows. (This was a diagnostic function to try to determine why rows were
+    overwriting each other, but basically there's some duplicate rows in the data.)"""
     global first_match
     from collections import defaultdict
     counts = defaultdict(int)
@@ -242,9 +243,9 @@ def check_for_collisions(list_of_dicts,primary_keys):
         old_r[index] = r
     print("{} total collisions found.".format(total))
     return total
-    
-    
-    
+
+
+
 def write_to_csv(filename,list_of_dicts,keys):
     with open(filename, 'w') as output_file:
         dict_writer = csv.DictWriter(output_file, keys, extrasaction='ignore', lineterminator='\n')
@@ -260,7 +261,7 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     #resource_id = '8cd32648-757c-4637-9076-85e144997ca8' # Raw liens
     #target = '/Users/daw165/data/TaxLiens/July31_2013/raw-liens.csv' # This path is hard-coded.
 
-    # Call function that converts fixed-width file into a CSV file. The function 
+    # Call function that converts fixed-width file into a CSV file. The function
     # returns the target file path.
 
     # Synthesize virtual file to send to the FileConnector
@@ -269,13 +270,13 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
 
     # Save the file path
     target = ntf.name
-    
+
     write_to_csv(target,list_of_dicts,field_names)
 
     # Testing temporary named file:
     #ntf.seek(0)
     #with open(target,'r') as g:
-    #    print(g.read()) 
+    #    print(g.read())
 
     ntf.seek(0)
     #target = '/Users/drw/WPRDC/Tax_Liens/foreclosure_data/raw-seminull-test.csv'
@@ -284,7 +285,7 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     server = "test-production"
     # Code below stolen from prime_ckan/*/open_a_channel() but really from utility_belt/gadgets
     #with open(os.path.dirname(os.path.abspath(__file__))+'/ckan_settings.json') as f: # The path of this file needs to be specified.
-    with open(STOP_USE_SETTINGS_FILE) as f: 
+    with open(STOP_USE_SETTINGS_FILE) as f:
         settings = json.load(f)
     site = settings['loader'][server]['ckan_root_url']
     package_id = settings['loader'][server]['package_id']
@@ -346,8 +347,8 @@ field_names_to_publish = [f['id'] for f in fields_to_publish]
 
 fieldwidths = [-1, 4, -1, 8, -1, 32, -1, 6, -1, 3, -1, 3, -1, 3, -2, 6, -1, 4]
 # Negative widths represent ignored padding fields.
-fieldwidths += [-1, 6, 7, -1, 8, -2, 8, -7, 4, -8, 1, -29, 4, -11, 4] 
-fieldwidths += [-7, 5, -14, 5, -1, 5, -47, 6] 
+fieldwidths += [-1, 6, 7, -1, 8, -2, 8, -7, 4, -8, 1, -29, 4, -11, 4]
+fieldwidths += [-7, 5, -14, 5, -1, 5, -47, 6]
 fieldwidths = tuple(fieldwidths)
 parse = make_parser(fieldwidths)
 print('format: {!r}, rec size: {} chars'.format(parse.fmtstring, parse.size))
@@ -387,10 +388,9 @@ assert len(set(field_names) - set(field_names_to_publish)) == 0
 #Check that all primary keys are in field_names. # The ETL library should do this.
 primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','on','off','load','latitude','longitude']
 # stop_name is sometimes converted to None...!
-# Experimenting with converting route value of 0 to None and using 
+# Experimenting with converting route value of 0 to None and using
 # block_number instead as a primary key.
 
-# Collisions occur if the fourth key is stop_sequence_number (but leaving it out in favor of stop_name seems to drop more records than is desirable).
 assert len(set(primary_keys) - set(field_names)) == 0
 
 with open('RouteCodes.csv', mode='r') as infile:
@@ -414,7 +414,7 @@ total_collisions = 0
 with open(filename, 'r', newline='\r\n') as f:
     for n,line in enumerate(f):
         if n >= first_line:
-            fields = parse(line) 
+            fields = parse(line)
             #if n == 2 or n==34:
             #    pprint(list(zip(field_names,fields)))
             named_fields = OrderedDict(zip(field_names,fields))
