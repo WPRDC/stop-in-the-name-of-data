@@ -1,4 +1,3 @@
-# [ ] Convert "NA" values to Nones (or something suitable, maybe empty strings).
 # [ ] Combine date and time into datetime?
 import sys, json, datetime, csv, os
 from marshmallow import fields, pre_load, post_load
@@ -399,7 +398,6 @@ with open('RouteCodes.csv', mode='r') as infile:
 
 route_lookup['0'] = None
 
-#fixed_width_file = sys.argv[1]
 filename = 'a_sample' # This is the fixed-width file containing the raw data.
 
 if len(sys.argv) > 1:
@@ -416,8 +414,8 @@ with open(filename, 'r', newline='\r\n') as f:
     for n,line in enumerate(f):
         if n >= first_line:
             fields = parse(line) 
-            if n == 2 or n==34:
-                pprint(list(zip(field_names,fields)))
+            #if n == 2 or n==34:
+            #    pprint(list(zip(field_names,fields)))
             named_fields = OrderedDict(zip(field_names,fields))
             list_of_dicts.append(named_fields)
 
