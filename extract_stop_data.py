@@ -26,10 +26,12 @@ except ImportError:
         for value in iterable:
             total += value
             yield total
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 from pprint import pprint
 
 from notify import send_to_slack
+
+missing_route_codes = defaultdict(int)
 
 def make_parser(fieldwidths):
     cuts = tuple(cut for cut in accumulate(abs(fw) for fw in fieldwidths))
@@ -63,7 +65,8 @@ class StopUseSchema(pl.BaseSchema):
     stop_sequence_number = fields.String(allow_none=True)
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=True)
-    route = fields.String(allow_none=True)
+    route_code = fields.String(load_from='route',allow_none=True)
+    route = fields.String(dump_only=True,allow_none=True)
     bus_number = fields.String(allow_none=False) # key
     block_number = fields.String(allow_none=True)
     pattern_variant = fields.String(allow_none=True)
@@ -108,15 +111,24 @@ class StopUseSchema(pl.BaseSchema):
             if type(data[f]) == str:
                 data[f] = data[f].strip()
 
-        if data['route'] in route_lookup.keys():
-            data['route'] = route_lookup[data['route']]
+        if data['route_code'] in route_lookup.keys():
+            data['route'] = route_lookup[data['route_code']]
         else:
-            if len(data['route']) < 3:
-                print("Send notification that an unknown route has been found.")
-            else:
-                error_message = "No real route designation found for route value {}.".format(data['route'])
-                send_to_slack("SITNOD: "+error_message)
-                raise ValueError(error_message)
+            data['route'] = None
+
+            # [ ] Eventually enable notifications here.
+            route_code = data['route_code']
+            global missing_route_codes
+
+            if route_code not in missing_route_codes:
+                missing_route_codes[route_code] += 1
+                if len(route_code) < 3:
+                    #print("Send notification that an unknown route has been found.")
+                    print("New unknown route found: {}".format(route_code))
+                else:
+                    error_message = "No real route designation found for route value {}.".format(route_code)
+                    #send_to_slack("SITNOD: "+error_message)
+                    #raise ValueError(error_message)
 
         data = replace_value(data,'stop_sequence_number','999',None)
         data = replace_value(data,'stop_id','00009999',None)
@@ -199,7 +211,6 @@ def check_for_collisions(list_of_dicts,primary_keys):
     rows. (This was a diagnostic function to try to determine why rows were
     overwriting each other, but basically there's some duplicate rows in the data.)"""
     global first_match
-    from collections import defaultdict
     counts = defaultdict(int)
     old_row = {}
     old_r = {}
@@ -404,8 +415,11 @@ route_lookup['0'] = None
 
 filename = 'a_sample' # This is the fixed-width file containing the raw data.
 
+mute_alerts = False
 if len(sys.argv) > 1:
     filename = sys.argv[1]
+    if 'mute' in sys.argv[1:]:
+        mute_alerts = True
 
 first_match = []
 
@@ -431,6 +445,10 @@ with open(filename, 'r', newline='\r\n') as f:
 
 #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
 send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys)
+print("Here's the tally of uncategorized route codes:")
+pprint(missing_route_codes)
+if not mute_alerts:
+    send_to_slack("SITNOD was unable to find these route codes: {}".format(missing_route_codes))
 #print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
 #pprint(dict(named_fields))
 #pprint(list_of_dicts)
