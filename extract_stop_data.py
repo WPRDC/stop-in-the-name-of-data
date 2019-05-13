@@ -109,7 +109,6 @@ def convert_to_isodatetime(date_part,time_string):
     return None
 
 class StopUseSchema(pl.BaseSchema):
-    real_arrival_datetime = fields.DateTime(allow_none=False)
     stop_sequence_number = fields.String(allow_none=True)
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=True)
@@ -202,7 +201,6 @@ class StopUseSchema(pl.BaseSchema):
 
         data['departure_time'] = convert_to_isodatetime(date_object, data['departure_time'])
         data['arrival_time'] = convert_to_isodatetime(date_object, data['arrival_time'])
-        #data['real_arrival_datetime'] = dt.isoformat()
 
         data = replace_value(data,'scheduled_stop_time','9999',None)
         data['scheduled_stop_time'] = convert_to_isodatetime(date_object, data['scheduled_stop_time'])
