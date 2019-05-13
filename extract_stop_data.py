@@ -68,6 +68,46 @@ def convert_string_to_isotime(f):
             raise
     return f
 
+def convert_string_to_time(time_string):
+    """Convert time_string to time, accounting for time strings with hours
+    of 24 or higher (which spill over to the next day)."""
+
+    day_offset = 0
+    if time_string is not None:
+        try:
+            if len(time_string) == 4:
+                converted_time = datetime.datetime.strptime(time_string, "%H%M").time()
+            else:
+                converted_time = datetime.datetime.strptime(time_string, "%H%M%S").time()
+        except ValueError:
+            if len(time_string) == 6:
+                fixed_time_str = str.zfill(str(int(time_string) - 240000),6) # To handle strings like 241331
+                day_offset = 1
+                converted_time = datetime.datetime.strptime(fixed_time_str, "%H%M%S").time()
+            elif len(time_string) == 4:
+                fixed_time_str = str.zfill(str(int(time_string) - 2400),4) # To handle strings like 2410
+                day_offset = 1
+                converted_time = datetime.datetime.strptime(fixed_time_str, "%H%M").time()
+            else:
+                print("convert_string_to_time unable to parse time_string = {}".format(time_string))
+                raise
+    return converted_time, day_offset
+
+
+def convert_to_isodatetime(date_part,time_string):
+    """Try combining date_part and time_string to get a datetime, accounting
+    for time strings with hours of 24 or higher (which spill over to the next
+    day)."""
+
+    if time_string is not None and date_part is not None:
+        time_part, day_offset = convert_string_to_time(time_string)
+        if time_part is not None and date_part is not None:
+            dt = datetime.datetime.combine(date_part, time_part) + datetime.timedelta(days=day_offset)
+            return dt.isoformat()
+        else:
+            return None
+    return None
+
 class StopUseSchema(pl.BaseSchema):
     real_arrival_datetime = fields.DateTime(allow_none=False)
     stop_sequence_number = fields.String(allow_none=True)
@@ -83,15 +123,19 @@ class StopUseSchema(pl.BaseSchema):
     # The days of the week are ordered, so it makes sense to treat the day of the week as an integer.
 
     # [ ] Which (if any) of these should be datetimes?
-    arrival_time = fields.Time(allow_none=True)
+    arrival_time_raw = fields.String(allow_none=True)
+    arrival_time = fields.DateTime(allow_none=True)
     on = fields.Integer(allow_none=False)
     off = fields.Integer(allow_none=False)
     load = fields.Integer(allow_none=False)
-    departure_time = fields.Time(allow_none=True)
+    departure_time_raw = fields.String(allow_none=True)
+    departure_time = fields.DateTime(allow_none=True)
     latitude = fields.Float(allow_none=True)
     longitude = fields.Float(allow_none=True)
-    scheduled_trip_start_time = fields.Time(allow_none=True)
-    scheduled_stop_time = fields.Time(allow_none=True)
+    scheduled_trip_start_time_raw = fields.String(allow_none=True)
+    scheduled_trip_start_time = fields.DateTime(allow_none=True)
+    scheduled_stop_time_raw = fields.String(allow_none=True) # Scheduled stoptimes need to be datetimes since they can have values like 2410.
+    scheduled_stop_time = fields.DateTime(allow_none=True) # Scheduled stoptimes need to be datetimes since they can have values like 2410.
     actual_run_time = fields.Float(allow_none=True)
     schedule_deviation = fields.Float(allow_none=True)
     dwell_time = fields.Float(allow_none=True)
@@ -150,39 +194,20 @@ class StopUseSchema(pl.BaseSchema):
         day_offset = 0
         date_object = datetime.datetime.strptime(data['date'], "%m%d%y").date()
         data['date'] = date_object.isoformat()
-        try:
-            data['departure_time'] = convert_string_to_isotime(data['departure_time'])
-        except:
-            if len(data['departure_time']) == 6:
-                original = str(data['departure_time'])
-                data['departure_time'] = str.zfill(str(int(data['departure_time']) - 240000),6)
-                day_offset = 1
-                data['departure_time'] = convert_string_to_isotime(data['departure_time'])
-            else:
-                raise ValueError("Unable to convert departure time {}".format(data['departure_time']))
+        data['departure_time_raw'] = str(data['departure_time'])
+        data['arrival_time_raw'] = str(data['arrival_time'])
+        data['scheduled_trip_start_time_raw'] = str(data['scheduled_trip_start_time'])
+        data['scheduled_stop_time_raw'] = str(data['scheduled_stop_time'])
+        # [ ] Make the 'schedule' names more similar.
 
-        try:
-            arrival_time = datetime.datetime.strptime(data['arrival_time'], "%H%M%S").time()
-            data['arrival_time'] = convert_string_to_isotime(data['arrival_time'])
-        except:
-            if len(data['arrival_time']) == 6:
-                original = str(data['arrival_time'])
-                data['arrival_time'] = str.zfill(str(int(data['arrival_time']) - 240000),6)
-                arrival_time = datetime.datetime.strptime(data['arrival_time'], "%H%M%S").time()
-                data['arrival_time'] = convert_string_to_isotime(data['arrival_time'])
-            else:
-                raise ValueError("Unable to convert arrival time {}".format(data['arrival_time']))
-
-        dt = datetime.datetime.combine(date_object, arrival_time) + datetime.timedelta(days=1)
-        data['real_arrival_datetime'] = dt.isoformat()
+        data['departure_time'] = convert_to_isodatetime(date_object, data['departure_time'])
+        data['arrival_time'] = convert_to_isodatetime(date_object, data['arrival_time'])
+        #data['real_arrival_datetime'] = dt.isoformat()
 
         data = replace_value(data,'scheduled_stop_time','9999',None)
-        if data['scheduled_stop_time'] is not None:
-            data['scheduled_stop_time'] = convert_string_to_isotime(data['scheduled_stop_time'])
-
+        data['scheduled_stop_time'] = convert_to_isodatetime(date_object, data['scheduled_stop_time'])
         data = replace_value(data,'scheduled_trip_start_time','9999',None)
-        if data['scheduled_trip_start_time'] is not None:
-            data['scheduled_trip_start_time'] = convert_string_to_isotime(data['scheduled_trip_start_time'])
+        data['scheduled_trip_start_time'] = convert_to_isodatetime(date_object, data['scheduled_trip_start_time'])
 
         #if data['departure_time'] is not None:
         #    data['departure_time'] = datetime.datetime.strptime(data['departure_time'], "%H%M%S").time().isoformat()
