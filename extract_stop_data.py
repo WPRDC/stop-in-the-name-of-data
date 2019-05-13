@@ -1,6 +1,6 @@
-# [ ] Combine date and time into datetime?
-import sys, json, datetime, csv, os
+import sys, json, csv, os
 from marshmallow import fields, pre_load, post_load
+from datetime import datetime, timedelta
 
 sys.path.insert(0, '/Users/drw/WPRDC/etl-dev/wprdc-etl') # A path that we need to import code from
 import pipeline as pl
@@ -58,18 +58,18 @@ def convert_string_to_time(time_string):
     if time_string is not None:
         try:
             if len(time_string) == 4:
-                converted_time = datetime.datetime.strptime(time_string, "%H%M").time()
+                converted_time = datetime.strptime(time_string, "%H%M").time()
             else:
-                converted_time = datetime.datetime.strptime(time_string, "%H%M%S").time()
+                converted_time = datetime.strptime(time_string, "%H%M%S").time()
         except ValueError:
             if len(time_string) == 6:
                 fixed_time_str = str.zfill(str(int(time_string) - 240000),6) # To handle strings like 241331
                 day_offset = 1
-                converted_time = datetime.datetime.strptime(fixed_time_str, "%H%M%S").time()
+                converted_time = datetime.strptime(fixed_time_str, "%H%M%S").time()
             elif len(time_string) == 4:
                 fixed_time_str = str.zfill(str(int(time_string) - 2400),4) # To handle strings like 2410
                 day_offset = 1
-                converted_time = datetime.datetime.strptime(fixed_time_str, "%H%M").time()
+                converted_time = datetime.strptime(fixed_time_str, "%H%M").time()
             else:
                 print("convert_string_to_time unable to parse time_string = {}".format(time_string))
                 raise
@@ -84,7 +84,7 @@ def convert_to_isodatetime(date_part,time_string):
     if time_string is not None and date_part is not None:
         time_part, day_offset = convert_string_to_time(time_string)
         if time_part is not None and date_part is not None:
-            dt = datetime.datetime.combine(date_part, time_part) + datetime.timedelta(days=day_offset)
+            dt = datetime.combine(date_part, time_part) + timedelta(days=day_offset)
             return dt.isoformat()
         else:
             return None
@@ -173,7 +173,7 @@ class StopUseSchema(pl.BaseSchema):
     @pre_load
     def fix_times_and_dates(self, data):
         day_offset = 0
-        date_object = datetime.datetime.strptime(data['date'], "%m%d%y").date()
+        date_object = datetime.strptime(data['date'], "%m%d%y").date()
         data['date'] = date_object.isoformat()
         data['departure_time_raw'] = str(data['departure_time'])
         data['arrival_time_raw'] = str(data['arrival_time'])
@@ -319,10 +319,10 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     log = open('uploaded.log', 'w+')
     if specify_resource_by_name:
         print("Piped data to {} on {}".format(kwargs['resource_name'],site))
-        log.write("Finished upserting {} at {} \n".format(kwargs['resource_name'],datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        log.write("Finished upserting {} at {} \n".format(kwargs['resource_name'],datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     else:
         print("Piped data to {} on {}".format(kwargs['resource_id'],site))
-        log.write("Finished upserting {} at {} \n".format(kwargs['resource_id'],datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        log.write("Finished upserting {} at {} \n".format(kwargs['resource_id'],datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     log.close()
     ntf.close()
     assert not os.path.exists(target)
