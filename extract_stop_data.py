@@ -50,24 +50,6 @@ def replace_value(record,f,old_value,new_value):
         record[f] = new_value
     return record
 
-def convert_string_to_isotime(f):
-    if f is not None:
-        try:
-            if len(f) == 4:
-                u = datetime.datetime.strptime(f, "%H%M").time().isoformat()
-            else:
-                u = datetime.datetime.strptime(f, "%H%M%S").time().isoformat()
-            f = u
-            return u
-        except ValueError:
-            print("convert_string_to_isotime unable to parse f = {}".format(f))
-            # Results in errors like this:
-            #  convert_string_to_isotime unable to parse f = 241234
-            #  convert_string_to_isotime unable to parse f = 241331
-            #  convert_string_to_isotime unable to parse f = 2410
-            raise
-    return f
-
 def convert_string_to_time(time_string):
     """Convert time_string to time, accounting for time strings with hours
     of 24 or higher (which spill over to the next day)."""
@@ -206,28 +188,6 @@ class StopUseSchema(pl.BaseSchema):
         data['scheduled_stop_time'] = convert_to_isodatetime(date_object, data['scheduled_stop_time'])
         data = replace_value(data,'scheduled_trip_start_time','9999',None)
         data['scheduled_trip_start_time'] = convert_to_isodatetime(date_object, data['scheduled_trip_start_time'])
-
-        #if data['departure_time'] is not None:
-        #    data['departure_time'] = datetime.datetime.strptime(data['departure_time'], "%H%M%S").time().isoformat()
-        #if data['arrival_time'] is not None:
-        #    data['arrival_time'] = datetime.datetime.strptime(data['arrival_time'], "%H%M%S").time().isoformat()
-
-    #        try: # This may be the satisfactions-file format.
-    #            data['filing_date'] = datetime.datetime.strptime(data['filing_date'], "%Y-%m-%d").date().isoformat()
-    #        except:
-    #            try:
-    #                data['filing_date'] = datetime.datetime.strptime(data['filing_date'], "%Y-%m-%d %H:%M:%S.%f").date().isoformat()
-    #            except:
-    #                # Try the original summaries format
-    #                try:
-    #                    data['filing_date'] = datetime.datetime.strptime(data['filing_date'], "%Y-%m-%d %H:%M:%S").date().isoformat()
-    #                except:
-    #                    # Try the format I got in one instance when I exported the
-    #                    # data from CKAN and then reimported it:
-    #                     data['filing_date'] = datetime.datetime.strptime(data['filing_date'], "%d-%b-%y").date().isoformat()
-    #    else:
-    #        print("No filing date for {} and data['filing_date'] = {}".format(data['dtd'],data['filing_date']))
-    #        data['filing_date'] = None
 
 # Resource Metadata
 #package_id = '626e59d2-3c0e-4575-a702-46a71e8b0f25'     # Production
