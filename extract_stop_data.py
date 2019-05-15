@@ -513,4 +513,4 @@ if __name__ == '__main__':
         print(msg) # Log it or whatever here
         if not mute_alerts:
             channel = "@david" if test_mode else "#etl-hell"
-            send_to_slack(msg,username='PLI Violations ETL assistant',channel='@david',icon=':illuminati:')
+            send_to_slack(msg,username='PLI Violations ETL assistant',channel=channel,icon=':illuminati:')
