@@ -1,4 +1,4 @@
-import sys, json, csv, os
+import sys, json, csv, os, traceback
 from marshmallow import fields, pre_load, post_load
 from datetime import datetime, timedelta
 
@@ -7,7 +7,7 @@ import pipeline as pl
 from subprocess import call
 import time
 
-from parameters.local_parameters import STOP_USE_SETTINGS_FILE
+from parameters.local_parameters import STOP_USE_SETTINGS_FILE, PRODUCTION, TEST_PACKAGE_ID
 
 # Parsing code obtained from
 #   https://stackoverflow.com/questions/4914008/how-to-efficiently-parse-fixed-width-files
@@ -255,14 +255,12 @@ def write_to_csv(filename,list_of_dicts,keys):
         dict_writer.writeheader()
         dict_writer.writerows(list_of_dicts)
 
-def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_size=5000):
+def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names,primary_keys,chunk_size=5000):
     specify_resource_by_name = True
     if specify_resource_by_name:
-        kwargs = {'resource_name': 'Stop-Use Data (alpha)'}
+        kwargs = {'resource_name': resource_name}
     #else:
         #kwargs = {'resource_id': ''}
-    #resource_id = '8cd32648-757c-4637-9076-85e144997ca8' # Raw liens
-    #target = '/Users/daw165/data/TaxLiens/July31_2013/raw-liens.csv' # This path is hard-coded.
 
     # Call function that converts fixed-width file into a CSV file. The function
     # returns the target file path.
@@ -291,7 +289,6 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     with open(STOP_USE_SETTINGS_FILE) as f:
         settings = json.load(f)
     site = settings['loader'][server]['ckan_root_url']
-    package_id = settings['loader'][server]['package_id']
 
     print("Preparing to pipe data from {} to resource {} package ID {} on {}".format(target,list(kwargs.values())[0],package_id,site))
     time.sleep(1.0)
@@ -310,7 +307,7 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
         .schema(schema) \
         .load(pl.CKANDatastoreLoader, server,
               fields=schema().serialize_to_ckan_fields(capitalize=False),
-              #package_id=package_id,
+              package_id=package_id,
               #resource_id=resource_id,
               #resource_name=resource_name,
               key_fields=primary_keys,
@@ -319,133 +316,200 @@ def send_data_to_pipeline(schema,list_of_dicts,field_names,primary_keys,chunk_si
     log = open('uploaded.log', 'w+')
     if specify_resource_by_name:
         print("Piped data to {} on {}".format(kwargs['resource_name'],site))
-        log.write("Finished upserting {} at {} \n".format(kwargs['resource_name'],datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        log.write("Finished upserting to {} at {} \n".format(kwargs['resource_name'],datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     else:
         print("Piped data to {} on {}".format(kwargs['resource_id'],site))
-        log.write("Finished upserting {} at {} \n".format(kwargs['resource_id'],datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        log.write("Finished upserting to {} at {} \n".format(kwargs['resource_id'],datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
     log.close()
     ntf.close()
     assert not os.path.exists(target)
 
-schema = StopUseSchema
-fields0 = schema().serialize_to_ckan_fields()
-# Eliminate fields that we don't want to upload.
-#fields0.pop(fields0.index({'type': 'text', 'id': 'party_type'}))
-#fields0.pop(fields0.index({'type': 'text', 'id': 'party_name'}))
-# Add some new fields.
-#fields0.append({'id': 'assignee', 'type': 'text'})
-fields_to_publish = fields0
-print("fields_to_publish = {}".format(fields_to_publish))
-field_names_to_publish = [f['id'] for f in fields_to_publish]
+stop_use_package_id = "812527ad-befc-4214-a4d3-e621d8230563" # Test package
 
-#line = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\n'
-#fieldwidths = (2, -10, 24)  # negative widths represent ignored padding fields
-#parse = make_parser(fieldwidths)
-#fields = parse(line)
-#print('format: {!r}, rec size: {} chars'.format(parse.fmtstring, parse.size))
-#print('fields: {}'.format(fields))
-##Output:
-##format: '2s 10x 24s', rec size: 36 chars
-##fields: ('AB', 'MNOPQRSTUVWXYZ0123456789')
+jobs = [
+    {
+        'package': stop_use_package_id,
+        'source_file': '',
+        'source_directory': '',
+        'resource_name': 'Stop-Use Data (beta)',
+        'schema': StopUseSchema
+    },
+]
 
-fieldwidths = [-1, 4, -1, 8, -1, 32, -1, 6, -1, 3, -1, 3, -1, 3, -2, 6, -1, 4]
-# Negative widths represent ignored padding fields.
-fieldwidths += [-1, 6, 7, -1, 8, -2, 8, -7, 4, -8, 1, -29, 4, -11, 4]
-fieldwidths += [-7, 5, -14, 5, -1, 5, -47, 6]
-fieldwidths = tuple(fieldwidths)
-parse = make_parser(fieldwidths)
-print('format: {!r}, rec size: {} chars'.format(parse.fmtstring, parse.size))
+def process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths):
+    package_id = job['package'] if not test_mode else TEST_PACKAGE_ID
+    resource_name = job['resource_name']
+    schema = job['schema']
+    fields0 = schema().serialize_to_ckan_fields()
+    # Eliminate fields that we don't want to upload.
+    #fields0.pop(fields0.index({'type': 'text', 'id': 'party_type'}))
+    #fields0.pop(fields0.index({'type': 'text', 'id': 'party_name'}))
+    # Add some new fields.
+    #fields0.append({'id': 'assignee', 'type': 'text'})
+    fields_to_publish = fields0
+    print("fields_to_publish = {}".format(fields_to_publish))
+    field_names_to_publish = [f['id'] for f in fields_to_publish]
 
-# Keep non-string fields as strings here
-# and convert them (to integers/floats/datetimes)
-# in the pipeline code, sending it virtual n-line CSV files.
-field_names = ['stop_sequence_number', #
-    'stop_id', #
-    'stop_name', #
-    'arrival_time', #
-    'on', #
-    'off', #
-    'load', #
-    'date',#
-    'route',
-    'pattern_variant', #
-    'block_number', #
-    'latitude', #
-    'longitude', #
-    'scheduled_trip_start_time', #trip
-    'day_of_week',#
-    'bus_number', #
-    'scheduled_stop_time',# Schd
-    'actual_run_time',
-    'schedule_deviation',
-    'dwell_time', #Dwell
-    'departure_time' #Depart
-    ]
+    #line = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789\n'
+    #fieldwidths = (2, -10, 24)  # negative widths represent ignored padding fields
+    #parse = make_parser(fieldwidths)
+    #fields = parse(line)
+    #print('format: {!r}, rec size: {} chars'.format(parse.fmtstring, parse.size))
+    #print('fields: {}'.format(fields))
+    ##Output:
+    ##format: '2s 10x 24s', rec size: 36 chars
+    ##fields: ('AB', 'MNOPQRSTUVWXYZ0123456789')
+
+    fieldwidths = [-1, 4, -1, 8, -1, 32, -1, 6, -1, 3, -1, 3, -1, 3, -2, 6, -1, 4]
+    # Negative widths represent ignored padding fields.
+    fieldwidths += [-1, 6, 7, -1, 8, -2, 8, -7, 4, -8, 1, -29, 4, -11, 4]
+    fieldwidths += [-7, 5, -14, 5, -1, 5, -47, 6]
+    fieldwidths = tuple(fieldwidths)
+    parse = make_parser(fieldwidths)
+    print('format: {!r}, rec size: {} chars'.format(parse.fmtstring, parse.size))
+
+    # Keep non-string fields as strings here
+    # and convert them (to integers/floats/datetimes)
+    # in the pipeline code, sending it virtual n-line CSV files.
+    field_names = ['stop_sequence_number', #
+        'stop_id', #
+        'stop_name', #
+        'arrival_time', #
+        'on', #
+        'off', #
+        'load', #
+        'date',#
+        'route',
+        'pattern_variant', #
+        'block_number', #
+        'latitude', #
+        'longitude', #
+        'scheduled_trip_start_time', #trip
+        'day_of_week',#
+        'bus_number', #
+        'scheduled_stop_time',# Schd
+        'actual_run_time',
+        'schedule_deviation',
+        'dwell_time', #Dwell
+        'departure_time' #Depart
+        ]
 
 
-# Check that field_names are all contained within fields_to_publish.
-# (Extra fields may have been added to field_names_to_publish.)
-#print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
-assert len(set(field_names) - set(field_names_to_publish)) == 0
+    # Check that field_names are all contained within fields_to_publish.
+    # (Extra fields may have been added to field_names_to_publish.)
+    #print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
+    assert len(set(field_names) - set(field_names_to_publish)) == 0
 
-#Check that all primary keys are in field_names. # The ETL library should do this.
-primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','latitude','longitude']
-# Experimenting with a 100k-row sample has shown that this 7-key combination seems to eliminate all the uninteresting duplicates.
-# Adding 'on', 'off', and 'load' does not change the resulting row count (about 97030 rows).
+    #Check that all primary keys are in field_names. # The ETL library should do this.
+    primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','latitude','longitude']
+    # Experimenting with a 100k-row sample has shown that this 7-key combination seems to eliminate all the uninteresting duplicates.
+    # Adding 'on', 'off', and 'load' does not change the resulting row count (about 97030 rows).
 
-# stop_name is sometimes converted to None...!
-# Experimenting with converting route value of 0 to None and using
-# block_number instead as a primary key.
+    # stop_name is sometimes converted to None...!
+    # Experimenting with converting route value of 0 to None and using
+    # block_number instead as a primary key.
+    # What about bus_number or route? Wouldn't bus_number be a logical thing to sort by? Date first, then bus_number, then arrival_time/stop_sequence_number?
+    # Shouldn't stop_sequence_number+bus-route-identifier be synonymous with stop_name?
+    # Which fields do we want to have indexed?
 
-assert len(set(primary_keys) - set(field_names)) == 0
+    # Never let any of the key fields have None values. It's just asking for
+    # multiplicity problems on upsert.
 
-with open('RouteCodes.csv', mode='r') as infile:
-    reader = csv.reader(infile)
-    route_lookup = {r[1]:r[0] for r in reader}
+    assert len(set(primary_keys) - set(field_names)) == 0
 
-route_lookup['0'] = None
+    if len(filepaths) == 0:
+        filepaths = ['a_sample'] # This is the fixed-width file containing the raw data.
 
-filename = 'a_sample' # This is the fixed-width file containing the raw data.
+    first_match = []
 
-mute_alerts = False
-if len(sys.argv) > 1:
-    filename = sys.argv[1]
-    if 'mute' in sys.argv[1:]:
-        mute_alerts = True
+    first_line = 2
+    list_of_dicts = []
+    n = 0
+    chunk_size = 5000
+    #total_collisions = 0
+    for filename in filepaths:
+        with open(filename, 'r', newline='\r\n') as f:
+            for n,line in enumerate(f):
+                if n >= first_line:
+                    fields = parse(line)
+                    #if n == 2 or n==34:
+                    #    pprint(list(zip(field_names,fields)))
+                    named_fields = OrderedDict(zip(field_names,fields))
+                    list_of_dicts.append(named_fields)
 
-first_match = []
+                if len(list_of_dicts) == chunk_size:
+                    # Push data to ETL pipeline
+                    #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
+                    send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,chunk_size+1)
+                    list_of_dicts = []
 
-first_line = 2
-list_of_dicts = []
-n = 0
-chunk_size = 5000
-#total_collisions = 0
-with open(filename, 'r', newline='\r\n') as f:
-    for n,line in enumerate(f):
-        if n >= first_line:
-            fields = parse(line)
-            #if n == 2 or n==34:
-            #    pprint(list(zip(field_names,fields)))
-            named_fields = OrderedDict(zip(field_names,fields))
-            list_of_dicts.append(named_fields)
-
-        if len(list_of_dicts) == chunk_size:
-            # Push data to ETL pipeline
-            #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-            send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys,chunk_size+1)
-            list_of_dicts = []
-
-#total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-send_data_to_pipeline(schema,list_of_dicts,field_names_to_publish,primary_keys)
-print("Here's the tally of uncategorized route codes:")
-pprint(missing_route_codes)
-if not mute_alerts:
-    send_to_slack("SITNOD was unable to find these route codes: {}".format(missing_route_codes))
+        #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
+        send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys)
+    print("Here's the tally of uncategorized route codes:")
+    pprint(missing_route_codes)
+    if not mute_alerts:
+        send_to_slack("SITNOD was unable to find these route codes: {}".format(missing_route_codes))
 #print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
-#pprint(dict(named_fields))
-#pprint(list_of_dicts)
 
 
-#if __name__ == "__main__":
+def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=False,mute_alerts=False,filepaths=[]):
+    if selected_job_codes == []:
+        selected_jobs = list(jobs)
+    else:
+        selected_jobs = [j for j in jobs if (j['source_file'] in selected_job_codes)]
+    for job in selected_jobs:
+        process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
+
+if __name__ == '__main__':
 #   # stuff only to run when not called via 'import' here
-#    main()
+    with open('RouteCodes.csv', mode='r') as infile:
+        reader = csv.reader(infile)
+        route_lookup = {r[1]:r[0] for r in reader}
+
+    route_lookup['0'] = None
+
+    args = sys.argv[1:]
+    copy_of_args = list(args)
+    mute_alerts = False
+    use_local_files = False
+    clear_first = False
+    test_mode = not PRODUCTION # Use PRODUCTION boolean from parameters/local_parameters.py to set whether test_mode defaults to True or False
+    job_codes = [j['source_file'] for j in jobs]
+    selected_job_codes = []
+    filepaths = []
+    try:
+        for k,arg in enumerate(copy_of_args):
+            if arg in ['mute']:
+                mute_alerts = True
+                args.remove(arg)
+            elif arg in ['local']:
+                use_local_files = True
+                args.remove(arg)
+            elif arg in ['clear_first']:
+                clear_first = True
+                args.remove(arg)
+            elif arg in ['test']:
+                test_mode = True
+                args.remove(arg)
+            elif arg in job_codes:
+                selected_job_codes.append(arg)
+                args.remove(arg)
+            else: # Check whether the argument could be a local file name or path.
+                file_exists = os.path.exists(arg)
+                if file_exists:
+                    args.remove(arg)
+                    filepaths.append(arg)
+        if len(args) > 0:
+            print("Unused command-line arguments: {}".format(args))
+
+        main(selected_job_codes,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
+    except:
+        e = sys.exc_info()[0]
+        msg = "Error: {} : \n".format(e)
+        exc_type, exc_value, exc_traceback = sys.exc_info()
+        lines = traceback.format_exception(exc_type, exc_value, exc_traceback)
+        msg = ''.join('!! ' + line for line in lines)
+        print(msg) # Log it or whatever here
+        if not mute_alerts:
+            channel = "@david" if test_mode else "#etl-hell"
+            send_to_slack(msg,username='PLI Violations ETL assistant',channel='@david',icon=':illuminati:')
