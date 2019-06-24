@@ -258,7 +258,7 @@ def write_to_csv(filename,list_of_dicts,keys):
         dict_writer.writeheader()
         dict_writer.writerows(list_of_dicts)
 
-def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names,primary_keys,chunk_size=5000):
+def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names,primary_keys,clear_first,chunk_size=5000):
     specify_resource_by_name = True
     if specify_resource_by_name:
         kwargs = {'resource_name': resource_name}
@@ -313,6 +313,7 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
               package_id=package_id,
               #resource_id=resource_id,
               #resource_name=resource_name,
+              clear_first=clear_first,
               key_fields=primary_keys,
               method='upsert',
               **kwargs).run()
@@ -443,11 +444,11 @@ def process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
                 if len(list_of_dicts) == chunk_size:
                     # Push data to ETL pipeline
                     #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-                    send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,chunk_size+1)
+                    send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,clear_first,chunk_size+1)
                     list_of_dicts = []
 
         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-        send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys)
+        send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,clear_first)
     print("Here's the tally of uncategorized route codes:")
     pprint(missing_route_codes)
     if not mute_alerts:
