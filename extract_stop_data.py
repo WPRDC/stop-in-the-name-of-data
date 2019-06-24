@@ -7,7 +7,8 @@ import pipeline as pl
 from subprocess import call
 import time
 
-from parameters.local_parameters import STOP_USE_SETTINGS_FILE, PRODUCTION, TEST_PACKAGE_ID
+from parameters.local_parameters import STOP_USE_SETTINGS_FILE, PRODUCTION
+from parameters.remote_parameters import TEST_PACKAGE_ID
 
 # Parsing code obtained from
 #   https://stackoverflow.com/questions/4914008/how-to-efficiently-parse-fixed-width-files
