@@ -91,7 +91,9 @@ def convert_to_isodatetime(date_part,time_string):
     return None
 
 class StopUseSchema(pl.BaseSchema):
-    stop_sequence_number = fields.String(allow_none=True)
+    stop_sequence_number = fields.String(allow_none=False) # 999 values are converted to "NA" rather than None, since this is a primary key.
+    # stop_sequence_number is a good primary-key component because a give stop_name can appear twice in a route with a loop but with different
+    # stop_sequence_number values, differentiating the beginning of the route from the end of the route.
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=True)
     route_decoded = fields.String(allow_none=True)
@@ -164,7 +166,7 @@ class StopUseSchema(pl.BaseSchema):
                     #print("Send notification that an unknown route has been found.")
                     print("New unknown route found: {}".format(route_code))
 
-        data = replace_value(data,'stop_sequence_number','999',None)
+        data = replace_value(data,'stop_sequence_number','999','NA')
         data = replace_value(data,'stop_id','00009999',None)
         #data = replace_value(data,'stop_name','Not Identified - Cal',None)
         data = replace_value(data,'pattern_variant','NA',None)
