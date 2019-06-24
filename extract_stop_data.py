@@ -95,11 +95,12 @@ class StopUseSchema(pl.BaseSchema):
     # stop_sequence_number is a good primary-key component because a give stop_name can appear twice in a route with a loop but with different
     # stop_sequence_number values, differentiating the beginning of the route from the end of the route.
     stop_id = fields.String(allow_none=True)
-    stop_name = fields.String(allow_none=True)
+    stop_name = fields.String(allow_none=False) # stop_name == EAST BUSWAY AT PENN STATION and stop_name == EAST BUSWAY AT PENN STAT both have stop_id == P01600. Thus stop_id is the preferred key.
+    # Except that stop_name splits its null stop_ids into two none-null values "Not Identified - Trip" and "Not Identified - Cal".
     route_decoded = fields.String(allow_none=True)
     route = fields.String(allow_none=True)
     bus_number = fields.String(allow_none=False) # key
-    block_number = fields.String(allow_none=True)
+    block_number = fields.String(allow_none=False)
     pattern_variant = fields.String(allow_none=True)
     date = fields.Date(allow_none=False) # key
     day_of_week = fields.Integer(allow_none=True) #day_of_week = fields.String(dump_to='day_of_week_code', allow_none=True)
@@ -107,12 +108,12 @@ class StopUseSchema(pl.BaseSchema):
 
     # [ ] Which (if any) of these should be datetimes?
     arrival_time_raw = fields.String(allow_none=True)
-    arrival_time = fields.DateTime(allow_none=True)
+    arrival_time = fields.DateTime(allow_none=False)
     on = fields.Integer(allow_none=False)
     off = fields.Integer(allow_none=False)
     load = fields.Integer(allow_none=False)
     departure_time_raw = fields.String(allow_none=True)
-    departure_time = fields.DateTime(allow_none=True)
+    departure_time = fields.DateTime(allow_none=False)
     latitude = fields.Float(allow_none=True)
     longitude = fields.Float(allow_none=True)
     scheduled_trip_start_time_raw = fields.String(allow_none=True)
