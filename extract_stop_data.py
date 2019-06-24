@@ -405,8 +405,6 @@ def process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
     #print("set difference = {}".format(set(field_names) - set(field_names_to_publish)))
     assert len(set(field_names) - set(field_names_to_publish)) == 0
 
-    #Check that all primary keys are in field_names. # The ETL library should do this.
-    primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','latitude','longitude']
     # Experimenting with a 100k-row sample has shown that this 7-key combination seems to eliminate all the uninteresting duplicates.
     # Adding 'on', 'off', and 'load' does not change the resulting row count (about 97030 rows).
 
@@ -416,6 +414,25 @@ def process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
     # What about bus_number or route? Wouldn't bus_number be a logical thing to sort by? Date first, then bus_number, then arrival_time/stop_sequence_number?
     # Shouldn't stop_sequence_number+bus-route-identifier be synonymous with stop_name?
     # Which fields do we want to have indexed?
+
+    #Check that all primary keys are in field_names. # The ETL library should do this.
+    #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','latitude','longitude'] # ==> 100%
+    #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number'] # ==> 99,999 (one missing row
+    # looked liked this
+    #       0,N71216,ALLEGHENY STATION BAY 1,14,14,1710,0014183,,2016-04-15,1,200810,2016-04-15T20:08:10,0,0,0
+    # and was overwritten by a row like two lines later that had different on/load values:
+    #       0,N71216,ALLEGHENY STATION BAY 1,14,14,1710,0014183,,2016-04-15,1,200810,2016-04-15T20:08:10,13,0,13
+    # Note that this is the same bus/date/timestamp (to the second), but somehow 13 people suddenly got on.
+    # This one example (in 1603.stp) indicates that on/off/load are needed as primary keys. It feels odd to do
+    # this, but we can't be throwing out those rows.)
+    #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','on','off','load'] # ==> 100%
+    # Adding departure_time to disambiguate the match above on date + arrrival_time + block_number + stop_name + stop_sequence_number.
+    primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','departure_time'] # ==> 100% over 100k rows
+
+    # Why use stop_sequence_number as a primary key instead of stop_id? They both have the same fraction
+    # of null values (about 7% for 1603.stp)? Answer: stop_id maps to stop_number (not stop_sequence_number).
+    # stop_sequence_number can differentiate the beginning and end of a route when they are the same physical stop.
+
 
     # Never let any of the key fields have None values. It's just asking for
     # multiplicity problems on upsert.
