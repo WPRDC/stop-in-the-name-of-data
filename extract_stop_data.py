@@ -296,7 +296,10 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     site = settings['loader'][server]['ckan_root_url']
 
     print("Preparing to pipe data from {} to resource {} package ID {} on {}".format(target,list(kwargs.values())[0],package_id,site))
-    time.sleep(1.0)
+    if slow_mode:
+        time.sleep(5.0)
+    else:
+        time.sleep(1.0)
 
 
     stop_use_pipeline = pl.Pipeline('stop_use_pipeline',
@@ -342,7 +345,7 @@ jobs = [
     },
 ]
 
-def process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths):
+def process_job(job,use_local_files,clear_first,test_mode,slow_mode,mute_alerts,filepaths):
     package_id = job['package'] if not test_mode else TEST_PACKAGE_ID
     resource_name = job['resource_name']
     schema = job['schema']
@@ -475,13 +478,16 @@ def process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
 #print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
 
 
-def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=False,mute_alerts=False,filepaths=[]):
+def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=False,slow_mode=False,mute_alerts=False,filepaths=[]):
+    # Note that since sitnod extraction is currently only for processing historical data
+    # it may not be necessary or useful to convert it the rest of the way to the new
+    # rocket-etl framework.
     if selected_job_codes == []:
         selected_jobs = list(jobs)
     else:
         selected_jobs = [j for j in jobs if (j['source_file'] in selected_job_codes)]
     for job in selected_jobs:
-        process_job(job,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
+        process_job(job,use_local_files,clear_first,test_mode,slow_mode,mute_alerts,filepaths)
 
 if __name__ == '__main__':
 #   # stuff only to run when not called via 'import' here
@@ -497,6 +503,7 @@ if __name__ == '__main__':
     use_local_files = False
     clear_first = False
     test_mode = not PRODUCTION # Use PRODUCTION boolean from parameters/local_parameters.py to set whether test_mode defaults to True or False
+    slow_mode = False
     job_codes = [j['source_file'] for j in jobs]
     selected_job_codes = []
     filepaths = []
@@ -514,6 +521,9 @@ if __name__ == '__main__':
             elif arg in ['test']:
                 test_mode = True
                 args.remove(arg)
+            elif arg in ['slow']:
+                slow_mode = True
+                args.remove(arg)
             elif arg in job_codes:
                 selected_job_codes.append(arg)
                 args.remove(arg)
@@ -525,7 +535,7 @@ if __name__ == '__main__':
         if len(args) > 0:
             print("Unused command-line arguments: {}".format(args))
 
-        main(selected_job_codes,use_local_files,clear_first,test_mode,mute_alerts,filepaths)
+        main(selected_job_codes,use_local_files,clear_first,test_mode,slow_mode,mute_alerts,filepaths)
     except:
         e = sys.exc_info()[0]
         msg = "Error: {} : \n".format(e)
