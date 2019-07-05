@@ -467,6 +467,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,mute_alerts,
                     # Push data to ETL pipeline
                     #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
                     send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,clear_first,chunk_size+1)
+                    print("   Processed through line n = {}".format(n))
                     list_of_dicts = []
 
         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
