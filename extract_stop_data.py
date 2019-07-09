@@ -162,6 +162,8 @@ class StopUseSchema(pl.BaseSchema):
                 if route_code is None or len(route_code) >= 3:
                     error_message = "   ** No real route designation found for route value {}. **".format(route_code)
                     print(error_message)
+                    with open('missing_routes.log', 'a') as o:
+                        o.write(error_message)
                     #send_to_slack("SITNOD: "+error_message)
                     #raise ValueError(error_message)
                 else:
