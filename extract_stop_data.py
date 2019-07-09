@@ -186,7 +186,12 @@ class StopUseSchema(pl.BaseSchema):
     @pre_load
     def fix_times_and_dates(self, data):
         day_offset = 0
-        date_object = datetime.strptime(data['date'], "%m%d%y").date()
+        try:
+            date_object = datetime.strptime(data['date'], "%m%d%y").date()
+        except:
+            print(data)
+            date_object = datetime.strptime(data['date'], "%m%d%y").date()
+
         data['date'] = date_object.isoformat()
         data['departure_time_raw'] = str(data['departure_time'])
         data['arrival_time_raw'] = str(data['arrival_time'])
