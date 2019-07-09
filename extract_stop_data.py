@@ -45,9 +45,15 @@ def make_parser(fieldwidths):
                                                 for fw in fieldwidths)
     return parse
 
+def clean_value(x):
+    """Clean strings with the strip command and return all other
+    types (like None) without changing them."""
+    if type(x) == str:
+        return x.strip()
+    return x
 
 def replace_value(record,f,old_value,new_value):
-    if record[f].strip() == old_value:
+    if clean_value(record[f]) == old_value:
         record[f] = new_value
     return record
 
