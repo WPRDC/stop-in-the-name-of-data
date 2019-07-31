@@ -29,6 +29,10 @@ except ImportError:
             yield total
 from collections import OrderedDict, defaultdict
 from pprint import pprint
+try:
+    from icecream import ic
+except ImportError:  # Graceful fallback if IceCream isn't installed.
+    ic = lambda *a: None if not a else (a[0] if len(a) == 1 else a)  # noqa
 
 from notify import send_to_slack
 
