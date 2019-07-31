@@ -363,7 +363,7 @@ jobs = [
         'package': stop_use_package_id,
         'source_file': '',
         'source_directory': '',
-        'resource_name': 'Stop-Use Data (beta)',
+        'resource_name': 'Stop-Use Data (gamma - with indexing)',
         'schema': StopUseSchema
     },
 ]
