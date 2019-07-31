@@ -277,7 +277,12 @@ def write_to_csv(filename,list_of_dicts,keys):
         dict_writer.writeheader()
         dict_writer.writerows(list_of_dicts)
 
-def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names,primary_keys,clear_first,chunk_size=5000):
+def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names,primary_keys,fields_to_index,clear_first,chunk_size=5000):
+    assert type(fields_to_index) == list # Since fields_to_index was added after this version of
+    assert type(clear_first) == bool # send_data_to_pipeline was broken off from others
+    assert type(primary_keys) == list # (in park_shark and bitkeeper), do a little type
+    assert type(chunk_size) == int # checking to avoid possible errors stemming from future
+    # attempts to unify those jobs under a common ETL library.
     specify_resource_by_name = True
     if specify_resource_by_name:
         kwargs = {'resource_name': resource_name}
@@ -337,6 +342,7 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
               #resource_name=resource_name,
               clear_first=clear_first,
               key_fields=primary_keys,
+              indexes=fields_to_index,
               method='upsert',
               **kwargs).run()
     log = open('uploaded.log', 'w+')
@@ -449,6 +455,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','on','off','load'] # ==> 100%
     # Adding departure_time to disambiguate the match above on date + arrrival_time + block_number + stop_name + stop_sequence_number.
     primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','departure_time'] # ==> 100% over 100k rows
+    fields_to_index = ['stop_id', 'pattern_variant']
 
     # Why use stop_sequence_number as a primary key instead of stop_id? They both have the same fraction
     # of null values (about 7% for 1603.stp)? Answer: stop_id maps to stop_number (not stop_sequence_number).
@@ -486,12 +493,12 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
                 if len(list_of_dicts) == chunk_size:
                     # Push data to ETL pipeline
                     #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-                    send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,clear_first,chunk_size+1)
+                    send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1)
                     print("   Processed through line n = {}".format(n))
                     list_of_dicts = []
 
         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-        send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,clear_first)
+        send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
     print("Here's the tally of uncategorized route codes:")
     pprint(missing_route_codes)
     if not mute_alerts:
