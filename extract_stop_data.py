@@ -2,6 +2,7 @@ import sys, json, csv, os, traceback
 from marshmallow import fields, pre_load, post_load
 from datetime import datetime, timedelta
 
+sys.path.insert(0, '/Users/daw165/etl/rocket-etl/engine/wprdc_etl') # A path that we need to import code from
 import pipeline as pl
 from subprocess import call
 import time
