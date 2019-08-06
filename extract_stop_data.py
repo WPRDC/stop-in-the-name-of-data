@@ -390,6 +390,23 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     ntf.close()
     assert not os.path.exists(target)
 
+def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size=5000):
+    resource_names = []
+    try:
+        send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
+    except TypeError:
+        # One of the dicts in list_of_dicts could not be parsed,
+        # probably because it was one of those blank lines
+        # separating different months of data in the .stp files.
+        list_of_lists = break_on_blanks(list_of_dicts)
+
+        for dicts in list_of_lists:
+            monthly_resource_name = infer_resource_name(job, dicts[0])
+            send_data_to_pipeline(package_id,monthly_resource_name,schema,dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
+            resource_names.append(monthly_resource_name)
+    return resource_names
+
+
 stop_use_package_id = "812527ad-befc-4214-a4d3-e621d8230563" # Test package
 
 jobs = [
