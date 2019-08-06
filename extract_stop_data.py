@@ -414,10 +414,19 @@ jobs = [
         'package': stop_use_package_id,
         'source_file': '',
         'source_directory': '',
-        'resource_name': 'Stop-Use Data (gamma - with indexing)',
+        'resource_name': 'Stop-Use Data - demultiplexing',
         'schema': StopUseSchema
     },
 ]
+
+def infer_resource_name(job, values):
+    """Build monthly resource name, combining job['resource_name']
+    with a month inferred from the sample record."""
+    # values['date'] has a form like '040116', represeting 2016-04-11
+    date_object = datetime.strptime(values['date'], "%m%d%y").date()
+    year_month = datetime.strftime(date_object, "%Y-%m")
+    name = "{} - {}".format(job['resource_name'], year_month)
+    return name
 
 def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mute_alerts,filepaths):
     package_id = job['package'] if not test_mode else TEST_PACKAGE_ID
@@ -534,6 +543,10 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     for filename in filepaths:
         with open(filename, 'r', newline='\r\n') as f:
             for n,line in enumerate(f):
+                if n == first_line:
+                    fields = parse(line)
+                    named_fields = OrderedDict(zip(field_names,fields))
+                    monthly_resource_name = infer_resource_name(job, named_fields)
                 if n >= first_line:
                     fields = parse(line)
                     #if n == 2 or n==34:
@@ -544,12 +557,13 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
                 if len(list_of_dicts) == chunk_size:
                     # Push data to ETL pipeline
                     #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-                    send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1)
+                    new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1)
+
                     print("   Processed through line n = {}".format(n))
                     list_of_dicts = []
 
         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-        send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
+        more_new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
     print("Here's the tally of uncategorized route codes:")
     pprint(missing_route_codes)
     if not mute_alerts:
