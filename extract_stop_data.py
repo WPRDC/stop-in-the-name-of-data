@@ -272,6 +272,35 @@ def check_for_collisions(list_of_dicts,primary_keys):
     return total
 
 
+def break_on_blanks(list_of_dicts):
+    """This function deals with the fact that the STP files can
+    sometimes be concatentated together and presented as an STP
+    file. When the regular send_data_to_pipeline parsing of
+    a record fails, this function gets sent the entire chunk
+    (a list of records), and is charged with splitting them
+    into separate lists. The assumption is that each break
+    in the file groups the records by month, so each list
+    returned by this function will contain records all from
+    the same month."""
+    current_list = []
+    list_of_lists = []
+    for k,d in enumerate(list_of_dicts):
+        if d['date'] not in ['', None, '_Date_']:
+            current_list.append(d)
+        else:
+            if current_list != []:
+                list_of_lists.append(list(current_list))
+            current_list = []
+
+    if current_list != []:
+        list_of_lists.append(list(current_list))
+
+    print("break_on_blanks has split the original list of length {} into {} lists of lengths {}.".format(len(list_of_dicts), len(list_of_lists), [len(l) for l in list_of_lists]))
+    for dicts in list_of_lists:
+        if len(dicts) < 20:
+            pprint(dicts)
+
+    return list_of_lists
 
 def write_to_csv(filename,list_of_dicts,keys):
     with open(filename, 'w') as output_file:
