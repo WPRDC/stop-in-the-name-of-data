@@ -302,6 +302,15 @@ def break_on_blanks(list_of_dicts):
 
     return list_of_lists
 
+def write_or_append_to_csv(filename, list_of_dicts, keys):
+    if not os.path.isfile(filename):
+        with open(filename, 'w') as output_file:
+            dict_writer = csv.DictWriter(output_file, keys, extrasaction='ignore', lineterminator='\n')
+            dict_writer.writeheader()
+    with open(filename, 'a') as output_file:
+        dict_writer = csv.DictWriter(output_file, keys, extrasaction='ignore', lineterminator='\n')
+        dict_writer.writerows(list_of_dicts)
+
 def write_to_csv(filename,list_of_dicts,keys):
     with open(filename, 'w') as output_file:
         dict_writer = csv.DictWriter(output_file, keys, extrasaction='ignore', lineterminator='\n')
@@ -569,6 +578,8 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
         more_new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
     print("Here's the tally of uncategorized route codes:")
     pprint(missing_route_codes)
+    routes_and_counts = [{'missing_route': route, 'records_count': count} for route, count in missing_route_codes.items()]
+    write_or_append_to_csv('missing_routes.csv', routes_and_counts, ['missing_route', 'records_count'])
     if not mute_alerts:
         send_to_slack("SITNOD was unable to find these route codes: {}".format(missing_route_codes))
 #print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
