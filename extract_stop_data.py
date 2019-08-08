@@ -558,6 +558,9 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
                     # Push data to ETL pipeline
                     #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
                     new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1)
+                    if len(new_resource_names) > 0:
+                        monthly_resource_name = new_resource_names[-1]
+                        assert len(new_resource_names) != 1
 
                     print("   Processed through line n = {}".format(n))
                     list_of_dicts = []
