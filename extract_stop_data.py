@@ -399,7 +399,7 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     ntf.close()
     assert not os.path.exists(target)
 
-def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size=5000):
+def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size=5000,keep_same_name=False):
     resource_names = []
     try:
         send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
@@ -410,7 +410,8 @@ def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,f
         list_of_lists = break_on_blanks(list_of_dicts)
 
         for dicts in list_of_lists:
-            monthly_resource_name = infer_resource_name(job, dicts[0])
+            if not keep_same_name:
+                monthly_resource_name = infer_resource_name(job, dicts[0])
             send_data_to_pipeline(package_id,monthly_resource_name,schema,dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
             resource_names.append(monthly_resource_name)
     return resource_names
@@ -566,7 +567,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
                 if len(list_of_dicts) == chunk_size:
                     # Push data to ETL pipeline
                     #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-                    new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1)
+                    new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1,keep_same_name=False)
                     if len(new_resource_names) > 0:
                         monthly_resource_name = new_resource_names[-1]
                         assert len(new_resource_names) != 1
