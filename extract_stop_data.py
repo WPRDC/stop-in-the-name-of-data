@@ -570,13 +570,17 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
 
                         if route_code not in missing_route_codes:
                             missing_route_codes[route_code] += 1
-                            if route_code is None or len(route_code) >= 3:
-                                error_message = "   ** No real route designation found for route value {}. **\n".format(route_code)
-                                print(error_message)
-                                with open('missing_routes.log', 'a') as o:
-                                    o.write(error_message)
-                            else:
-                                print("New unknown route found: {}".format(route_code))
+                            error_message = "   ** No real route designation found for route value {}. **\n".format(route_code)
+                            print(error_message)
+                            with open('missing_routes.log', 'a') as o:
+                                o.write(error_message)
+                            #if route_code is None or len(route_code) >= 3:
+                            #    error_message = "   ** No real route designation found for route value {}. **\n".format(route_code)
+                            #    print(error_message)
+                            #    with open('missing_routes.log', 'a') as o:
+                            #        o.write(error_message)
+                            #else:
+                            #    print("New unknown route found: {}".format(route_code))
                 # End of searching for missing routes.
                 else:
                     if n == first_line:
