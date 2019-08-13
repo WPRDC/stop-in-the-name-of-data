@@ -557,30 +557,53 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     for filename in filepaths:
         with open(filename, 'r', newline='\r\n') as f:
             for n,line in enumerate(f):
-                if n == first_line:
+                # Rather than transforming and loading this data, just search
+                # it for missing routes.
+                if job['destinations'] == []:
+                    if n == 1:
+                        monthly_resource_name = None
                     fields = parse(line)
                     named_fields = OrderedDict(zip(field_names,fields))
-                    monthly_resource_name = infer_resource_name(job, named_fields)
-                if n >= first_line:
-                    fields = parse(line)
-                    #if n == 2 or n==34:
-                    #    pprint(list(zip(field_names,fields)))
-                    named_fields = OrderedDict(zip(field_names,fields))
-                    list_of_dicts.append(named_fields)
+                    route_code = named_fields['route'].strip() # The ETL framework must quietly be doing this stripping.
+                    if route_code not in route_lookup.keys():
+                        global missing_route_codes
 
-                if len(list_of_dicts) == chunk_size:
-                    # Push data to ETL pipeline
-                    #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-                    new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1,keep_same_name=False)
-                    if len(new_resource_names) > 0:
-                        monthly_resource_name = new_resource_names[-1]
-                        assert len(new_resource_names) != 1
+                        if route_code not in missing_route_codes:
+                            missing_route_codes[route_code] += 1
+                            if route_code is None or len(route_code) >= 3:
+                                error_message = "   ** No real route designation found for route value {}. **\n".format(route_code)
+                                print(error_message)
+                                with open('missing_routes.log', 'a') as o:
+                                    o.write(error_message)
+                            else:
+                                print("New unknown route found: {}".format(route_code))
+                # End of searching for missing routes.
+                else:
+                    if n == first_line:
+                        fields = parse(line)
+                        named_fields = OrderedDict(zip(field_names,fields))
+                        monthly_resource_name = infer_resource_name(job, named_fields)
+                    if n >= first_line:
+                        fields = parse(line)
+                        #if n == 2 or n==34:
+                        #    pprint(list(zip(field_names,fields)))
+                        named_fields = OrderedDict(zip(field_names,fields))
+                        list_of_dicts.append(named_fields)
 
-                    print("   Processed through line n = {}".format(n))
-                    list_of_dicts = []
+                    if len(list_of_dicts) == chunk_size:
+                        # Push data to ETL pipeline
+                        #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
+                        new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1,keep_same_name=False)
+                        if len(new_resource_names) > 0:
+                            monthly_resource_name = new_resource_names[-1]
+                            assert len(new_resource_names) != 1
+
+                        print("   Processed through line n = {}".format(n))
+                        list_of_dicts = []
 
         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-        more_new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
+        if job['destinations'] != []:
+            more_new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
     print("Here's the tally of uncategorized route codes:")
     pprint(missing_route_codes)
     routes_and_counts = [{'missing_route': route, 'records_count': count} for route, count in missing_route_codes.items()]
@@ -590,7 +613,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
 #print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
 
 
-def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=False,slow_mode=False,start_at=None,mute_alerts=False,filepaths=[]):
+def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=False,slow_mode=False,start_at=None,mute_alerts=False,filepaths=[],audit_missing_codes=False):
     # Note that since sitnod extraction is currently only for processing historical data
     # it may not be necessary or useful to convert it the rest of the way to the new
     # rocket-etl framework.
@@ -599,6 +622,9 @@ def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=Fa
     else:
         selected_jobs = [j for j in jobs if (j['source_file'] in selected_job_codes)]
     for job in selected_jobs:
+        if audit_missing_codes:
+            job['destinations'] = [] # Override any output to CKAN or exporting data to local files. Just focus on finding those missing route codes.
+            print("Not uploading data. Just searching for route codes for which there is no lookup value.")
         process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mute_alerts,filepaths)
 
 if __name__ == '__main__':
@@ -616,6 +642,7 @@ if __name__ == '__main__':
     clear_first = False
     test_mode = not PRODUCTION # Use PRODUCTION boolean from parameters/local_parameters.py to set whether test_mode defaults to True or False
     slow_mode = False
+    audit_missing_codes = False
     start_at = None
     job_codes = [j['source_file'] for j in jobs]
     selected_job_codes = []
@@ -637,6 +664,9 @@ if __name__ == '__main__':
             elif arg in ['slow']:
                 slow_mode = True
                 args.remove(arg)
+            elif arg in ['audit_codes', 'find_missing_codes', 'find_missing_routes']:
+                audit_missing_codes = True
+                args.remove(arg)
             elif arg[:2] == 'n=':
                 start_at = int(arg.split('=')[1])
                 args.remove(arg)
@@ -651,7 +681,7 @@ if __name__ == '__main__':
         if len(args) > 0:
             print("Unused command-line arguments: {}".format(args))
 
-        main(selected_job_codes,use_local_files,clear_first,test_mode,slow_mode,start_at,mute_alerts,filepaths)
+        main(selected_job_codes,use_local_files,clear_first,test_mode,slow_mode,start_at,mute_alerts,filepaths,audit_missing_codes)
     except:
         e = sys.exc_info()[0]
         msg = "Error: {} : \n".format(e)
