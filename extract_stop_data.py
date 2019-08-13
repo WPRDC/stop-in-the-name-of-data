@@ -129,10 +129,10 @@ class StopUseSchema(pl.BaseSchema):
     departure_time = fields.DateTime(allow_none=False)
     latitude = fields.Float(allow_none=True)
     longitude = fields.Float(allow_none=True)
-    scheduled_trip_start_time_raw = fields.String(allow_none=True)
+    scheduled_trip_start_time_raw = fields.String(allow_none=True) # Scheduled start times need to be strings since they can have values like 2410.
     scheduled_trip_start_time = fields.DateTime(allow_none=True)
-    scheduled_stop_time_raw = fields.String(allow_none=True) # Scheduled stoptimes need to be datetimes since they can have values like 2410.
-    scheduled_stop_time = fields.DateTime(allow_none=True) # Scheduled stoptimes need to be datetimes since they can have values like 2410.
+    scheduled_stop_time_raw = fields.String(allow_none=True) # Scheduled stop times need to be strings since they can have values like 2410.
+    scheduled_stop_time = fields.DateTime(allow_none=True)
     actual_run_time = fields.Float(allow_none=True)
     schedule_deviation = fields.Float(allow_none=True)
     dwell_time = fields.Float(allow_none=True)
