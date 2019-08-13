@@ -424,7 +424,7 @@ jobs = [
         'package': stop_use_package_id,
         'source_file': '',
         'source_directory': '',
-        'resource_name': 'Stop-Use Data - demultiplexing',
+        'resource_name': 'Stop-Use Data - improved',
         'schema': StopUseSchema
     },
 ]
