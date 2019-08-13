@@ -551,7 +551,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
         print("   ===> Starting processing at line {} of the file.".format(first_line))
     list_of_dicts = []
     n = 0
-    chunk_size = 5000
+    chunk_size = 10000
     #total_collisions = 0
     for filename in filepaths:
         with open(filename, 'r', newline='\r\n') as f:
