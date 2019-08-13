@@ -421,11 +421,12 @@ stop_use_package_id = "812527ad-befc-4214-a4d3-e621d8230563" # Test package
 
 jobs = [
     {
-        'package': stop_use_package_id,
         'source_file': '',
         'source_directory': '',
-        'resource_name': 'Stop-Use Data - improved',
-        'schema': StopUseSchema
+        'schema': StopUseSchema,
+        'destinations': ['ckan'],
+        'package': stop_use_package_id,
+        'resource_name': 'Stop-Use Data - improved'
     },
 ]
 
