@@ -122,8 +122,8 @@ class StopUseSchema(pl.BaseSchema):
     # [ ] Which (if any) of these should be datetimes?
     arrival_time_raw = fields.String(allow_none=True)
     arrival_time = fields.DateTime(allow_none=False)
-    on = fields.Integer(allow_none=False)
-    off = fields.Integer(allow_none=False)
+    ons = fields.Integer(allow_none=False) # 'on' is a reserved term in Postgres, necessitating quoting 'on' in SQL queries.
+    offs = fields.Integer(allow_none=False) # 'off' is a reserved term in Postgres, necessitating quoting 'off' in SQL queries.
     load = fields.Integer(allow_none=False)
     departure_time_raw = fields.String(allow_none=True)
     departure_time = fields.DateTime(allow_none=False)
@@ -477,8 +477,8 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
         'stop_id', #
         'stop_name', #
         'arrival_time', #
-        'on', #
-        'off', #
+        'ons', #
+        'offs', #
         'load', #
         'date',#
         'route',
@@ -503,7 +503,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     assert len(set(field_names) - set(field_names_to_publish)) == 0
 
     # Experimenting with a 100k-row sample has shown that this 7-key combination seems to eliminate all the uninteresting duplicates.
-    # Adding 'on', 'off', and 'load' does not change the resulting row count (about 97030 rows).
+    # Adding 'ons', 'offs', and 'load' does not change the resulting row count (about 97030 rows).
 
     # stop_name is sometimes converted to None...!
     # Experimenting with converting route value of 0 to None and using
@@ -522,7 +522,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     # Note that this is the same bus/date/timestamp (to the second), but somehow 13 people suddenly got on.
     # This one example (in 1603.stp) indicates that on/off/load are needed as primary keys. It feels odd to do
     # this, but we can't be throwing out those rows.)
-    #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','on','off','load'] # ==> 100%
+    #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','ons','offs','load'] # ==> 100%
     # Adding departure_time to disambiguate the match above on date + arrrival_time + block_number + stop_name + stop_sequence_number.
     primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','departure_time'] # ==> 100% over 100k rows
     fields_to_index = ['stop_id', 'pattern_variant']
