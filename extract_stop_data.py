@@ -525,7 +525,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','ons','offs','load'] # ==> 100%
     # Adding departure_time to disambiguate the match above on date + arrrival_time + block_number + stop_name + stop_sequence_number.
     primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','departure_time'] # ==> 100% over 100k rows
-    fields_to_index = ['stop_id', 'pattern_variant']
+    fields_to_index = ['stop_id', 'pattern_variant', 'route_name']
 
     # Why use stop_sequence_number as a primary key instead of stop_id? They both have the same fraction
     # of null values (about 7% for 1603.stp)? Answer: stop_id maps to stop_number (not stop_sequence_number).
