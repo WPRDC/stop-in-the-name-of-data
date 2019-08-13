@@ -110,8 +110,8 @@ class StopUseSchema(pl.BaseSchema):
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=False) # stop_name == EAST BUSWAY AT PENN STATION and stop_name == EAST BUSWAY AT PENN STAT both have stop_id == P01600. Thus stop_id is the preferred key.
     # Except that stop_name splits its null stop_ids into two none-null values "Not Identified - Trip" and "Not Identified - Cal".
-    route_decoded = fields.String(allow_none=True)
-    route = fields.String(allow_none=True)
+    route_name = fields.String(allow_none=True) # This is the decoded version of the route, using a look-up table.
+    route = fields.String(allow_none=True) # This is the raw version of the route.
     bus_number = fields.String(allow_none=False) # key
     block_number = fields.String(allow_none=False)
     pattern_variant = fields.String(allow_none=True)
@@ -161,9 +161,9 @@ class StopUseSchema(pl.BaseSchema):
                 data[f] = data[f].strip()
 
         if data['route'] in route_lookup.keys():
-            data['route_decoded'] = route_lookup[data['route']]
+            data['route_name'] = route_lookup[data['route']]
         else:
-            data['route_decoded'] = None
+            data['route_name'] = None
 
             route_code = data['route']
             global missing_route_codes
