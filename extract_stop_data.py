@@ -414,6 +414,9 @@ def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,f
                 monthly_resource_name = infer_resource_name(job, dicts[0])
             send_data_to_pipeline(package_id,monthly_resource_name,schema,dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
             resource_names.append(monthly_resource_name)
+    except RuntimeError: # This is the error raised when an upsert fails with status code 504 (for instance).
+        time.sleep(5) # Pause and then retry
+        send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
     return resource_names
 
 
