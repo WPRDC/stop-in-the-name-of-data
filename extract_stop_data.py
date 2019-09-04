@@ -103,6 +103,15 @@ def convert_to_isodatetime(date_part,time_string):
             return None
     return None
 
+def convert_day_type(code):
+    if code == '1':
+        return 'weekday'
+    if code == '2':
+        return 'Saturday'
+    if code == '3':
+        return 'Sunday'
+    return None
+
 class StopUseSchema(pl.BaseSchema):
     stop_sequence_number = fields.String(allow_none=False) # 999 values are converted to "NA" rather than None, since this is a primary key.
     # stop_sequence_number is a good primary-key component because a give stop_name can appear twice in a route with a loop but with different
@@ -116,10 +125,11 @@ class StopUseSchema(pl.BaseSchema):
     block_number = fields.String(allow_none=False)
     pattern_variant = fields.String(allow_none=True)
     date = fields.Date(allow_none=False) # key
-    day_of_week = fields.Integer(allow_none=True) #day_of_week = fields.String(dump_to='day_of_week_code', allow_none=True)
+    #day_type_code = fields.String(dump_to='day_type_code', allow_none=True) # This is the day_of_week field.
     # The days of the week are ordered, so it makes sense to treat the day of the week as an integer.
+    # Actually, this is NOT the day of the week. This is a code where 1 = weekday, 2 = Saturday, 3 = Sunday.
 
-    # [ ] Which (if any) of these should be datetimes?
+    day_type = fields.String(dump_to='day_type', allow_none=False)
     arrival_time_raw = fields.String(allow_none=True)
     arrival_time = fields.DateTime(allow_none=False)
     ons = fields.Integer(allow_none=False) # 'on' is a reserved term in Postgres, necessitating quoting 'on' in SQL queries.
@@ -212,6 +222,7 @@ class StopUseSchema(pl.BaseSchema):
         data['scheduled_stop_time'] = convert_to_isodatetime(date_object, data['scheduled_stop_time'])
         data = replace_value(data,'scheduled_trip_start_time','9999',None)
         data['scheduled_trip_start_time'] = convert_to_isodatetime(date_object, data['scheduled_trip_start_time'])
+        data['day_type'] = convert_day_type(data['day_type'])
 
 # Resource Metadata
 #package_id = '626e59d2-3c0e-4575-a702-46a71e8b0f25'     # Production
@@ -452,7 +463,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     schema = job['schema']
     fields0 = schema().serialize_to_ckan_fields()
     # Eliminate fields that we don't want to upload.
-    #fields0.pop(fields0.index({'type': 'text', 'id': 'party_type'}))
+    # fields0.pop(fields0.index({'type': 'text', 'id': 'day_type_code'}))
     #fields0.pop(fields0.index({'type': 'text', 'id': 'party_name'}))
     # Add some new fields.
     #fields0.append({'id': 'assignee', 'type': 'text'})
@@ -495,7 +506,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
         'latitude', #
         'longitude', #
         'scheduled_trip_start_time', #trip
-        'day_of_week',#
+        'day_type',#
         'bus_number', #
         'scheduled_stop_time',# Schd
         'actual_run_time',
