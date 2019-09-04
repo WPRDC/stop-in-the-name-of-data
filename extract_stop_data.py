@@ -187,7 +187,7 @@ class StopUseSchema(pl.BaseSchema):
         #data = replace_value(data,'stop_name','Not Identified - Cal',None)
         data = replace_value(data,'pattern_variant','NA',None)
         data = replace_value(data,'actual_run_time','99.90',None)
-        data = replace_value(data,'schedule_deviation','99',None)
+        data = replace_value(data,'schedule_deviation','99.00',None)
 
     @pre_load
     def fix_times_and_dates(self, data):
