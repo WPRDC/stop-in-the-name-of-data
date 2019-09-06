@@ -1,7 +1,10 @@
 *sample
 *.pyc
+*.stp
+*.zip
 old/
-uploaded.log
+*.log
 parameters/
 byway.py
 credentials.py
+TODO
