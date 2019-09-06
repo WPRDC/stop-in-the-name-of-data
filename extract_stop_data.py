@@ -446,7 +446,7 @@ jobs = [
         'schema': StopUseSchema,
         'destinations': ['ckan'],
         'package': stop_use_package_id,
-        'resource_name': 'Stop-Use Data - improved'
+        'resource_name': 'Passenger Counts by Stop and Trip'
     },
 ]
 
