@@ -212,7 +212,9 @@ class StopUseSchema(pl.BaseSchema):
         data['departure_time_raw'] = str(data['departure_time'])
         data['arrival_time_raw'] = str(data['arrival_time'])
         data['scheduled_trip_start_time_raw'] = str(data['scheduled_trip_start_time'])
+        data = replace_value(data,'scheduled_trip_start_time_raw','9999',None)
         data['scheduled_stop_time_raw'] = str(data['scheduled_stop_time'])
+        data = replace_value(data,'scheduled_stop_time_raw','9999',None)
         # [ ] Make the 'schedule' names more similar.
 
         data['departure_time'] = convert_to_isodatetime(date_object, data['departure_time'])
