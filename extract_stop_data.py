@@ -666,9 +666,9 @@ def main(selected_job_codes,use_local_files=False,clear_first=False,test_mode=Fa
 
 if __name__ == '__main__':
 #   # stuff only to run when not called via 'import' here
-    with open('RouteCodes.csv', mode='r') as infile:
-        reader = csv.reader(infile)
-        route_lookup = {r[1]:r[0] for r in reader}
+    with open('BusRouteNameLookup.csv', mode='r') as infile:
+        reader = csv.DictReader(infile)
+        route_lookup = {r['Internal_Code']:r['Friendly_Name'] for r in reader}
 
     route_lookup['0'] = None
 
