@@ -546,7 +546,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','ons','offs','load'] # ==> 100%
     # Adding departure_time to disambiguate the match above on date + arrrival_time + block_number + stop_name + stop_sequence_number.
     primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','departure_time'] # ==> 100% over 100k rows
-    fields_to_index = list(primary_keys) + ['stop_id', 'pattern_variant', 'route_name']
+    fields_to_index = list(primary_keys) + ['stop_id', 'pattern_variant', 'route_name', 'day_type']
     # If you don't list each primary key field as a separate field to index
     # (at least when the primary key is a combination of fields), it
     # doesn't get indexed and queries take way longer.
