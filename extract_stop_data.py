@@ -412,10 +412,14 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     ntf.close()
     assert not os.path.exists(target)
 
-def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size=5000,keep_same_name=False):
+def pipeline_wrapper(job,package_id,monthly_resource_name,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size=5000,keep_same_name=False):
     resource_names = []
+    accumulate = True
     try:
         send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
+        if accumulate:
+            send_data_to_pipeline(package_id,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,False,chunk_size)
+
     except TypeError:
         # One of the dicts in list_of_dicts could not be parsed,
         # probably because it was one of those blank lines
@@ -426,14 +430,20 @@ def pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,f
             if not keep_same_name:
                 monthly_resource_name = infer_resource_name(job, dicts[0])
             send_data_to_pipeline(package_id,monthly_resource_name,schema,dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
+            if accumulate:
+                send_data_to_pipeline(package_id,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,False,chunk_size)
             resource_names.append(monthly_resource_name)
     except RuntimeError: # This is the error raised when an upsert fails with status code 504 (for instance).
         time.sleep(5) # Pause and then retry
         try:
             send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
+            if accumulate:
+                send_data_to_pipeline(package_id,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,False,chunk_size)
         except RuntimeError:
             time.sleep(60)
             send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
+            if accumulate:
+                send_data_to_pipeline(package_id,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,False,chunk_size)
     return resource_names
 
 
@@ -574,8 +584,9 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
         print("   ===> Starting processing at line {} of the file.".format(first_line))
     list_of_dicts = []
     n = 0
-    chunk_size = 10000
+    chunk_size = 5000
     #total_collisions = 0
+    cumulative_resource_name = "{} (Cumulative)".format(job['resource_name'])
     for filename in filepaths:
         with open(filename, 'r', newline='\r\n') as f:
             for n,line in enumerate(f):
@@ -619,7 +630,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
                     if len(list_of_dicts) == chunk_size:
                         # Push data to ETL pipeline
                         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
-                        new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1,keep_same_name=False)
+                        new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size+1,keep_same_name=False)
                         if len(new_resource_names) > 0:
                             monthly_resource_name = new_resource_names[-1]
                             assert len(new_resource_names) != 1
@@ -629,7 +640,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
 
         #total_collisions += check_for_collisions(list_of_dicts,primary_keys)
         if job['destinations'] != []:
-            more_new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
+            more_new_resource_names = pipeline_wrapper(job,package_id,monthly_resource_name,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first)
     print("Here's the tally of uncategorized route codes:")
     pprint(missing_route_codes)
     routes_and_counts = [{'missing_route': route, 'records_count': count} for route, count in missing_route_codes.items()]
