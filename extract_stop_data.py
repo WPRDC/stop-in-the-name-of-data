@@ -668,7 +668,7 @@ if __name__ == '__main__':
 #   # stuff only to run when not called via 'import' here
     with open('BusRouteNameLookup.csv', mode='r') as infile:
         reader = csv.DictReader(infile)
-        route_lookup = {r['Internal_Code']:r['Friendly_Name'] for r in reader}
+        route_lookup = {r['Internal_Code']:(r['Friendly_Name'] if r['Friendly_Name'] != '' else None) for r in reader }
 
     route_lookup['0'] = None
 
