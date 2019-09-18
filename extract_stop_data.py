@@ -119,8 +119,8 @@ class StopUseSchema(pl.BaseSchema):
     stop_id = fields.String(allow_none=True)
     stop_name = fields.String(allow_none=False) # stop_name == EAST BUSWAY AT PENN STATION and stop_name == EAST BUSWAY AT PENN STAT both have stop_id == P01600. Thus stop_id is the preferred key.
     # Except that stop_name splits its null stop_ids into two none-null values "Not Identified - Trip" and "Not Identified - Cal".
-    route_name = fields.String(allow_none=True) # This is the decoded version of the route, using a look-up table.
-    route = fields.String(allow_none=True) # This is the raw version of the route.
+    route = fields.String(allow_none=True) # This is the decoded version of the route, using a look-up table.
+    route_code = fields.String(allow_none=True) # This is the raw version of the route.
     bus_number = fields.String(allow_none=False) # key
     block_number = fields.String(allow_none=False)
     pattern_variant = fields.String(allow_none=True)
@@ -170,12 +170,12 @@ class StopUseSchema(pl.BaseSchema):
             if type(data[f]) == str:
                 data[f] = data[f].strip()
 
-        if data['route'] in route_lookup.keys():
-            data['route_name'] = route_lookup[data['route']]
+        if data['route_code'] in route_lookup.keys():
+            data['route'] = route_lookup[data['route_code']]
         else:
-            data['route_name'] = None
+            data['route'] = None
 
-            route_code = data['route']
+            route_code = data['route_code']
             global missing_route_codes
 
             # [ ] Eventually enable notifications here.
@@ -512,7 +512,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
         'offs', #
         'load', #
         'date',#
-        'route',
+        'route_code',
         'pattern_variant', #
         'block_number', #
         'latitude', #
@@ -537,9 +537,9 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     # Adding 'ons', 'offs', and 'load' does not change the resulting row count (about 97030 rows).
 
     # stop_name is sometimes converted to None...!
-    # Experimenting with converting route value of 0 to None and using
+    # Experimenting with converting route_code value of 0 to None and using
     # block_number instead as a primary key.
-    # What about bus_number or route? Wouldn't bus_number be a logical thing to sort by? Date first, then bus_number, then arrival_time/stop_sequence_number?
+    # What about bus_number or route_code? Wouldn't bus_number be a logical thing to sort by? Date first, then bus_number, then arrival_time/stop_sequence_number?
     # Shouldn't stop_sequence_number+bus-route-identifier be synonymous with stop_name?
     # Which fields do we want to have indexed?
 
@@ -556,7 +556,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     #primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','ons','offs','load'] # ==> 100%
     # Adding departure_time to disambiguate the match above on date + arrrival_time + block_number + stop_name + stop_sequence_number.
     primary_keys = ['date','arrival_time','block_number','stop_name','stop_sequence_number','departure_time'] # ==> 100% over 100k rows
-    fields_to_index = list(primary_keys) + ['stop_id', 'pattern_variant', 'route_name', 'day_type']
+    fields_to_index = list(primary_keys) + ['stop_id', 'pattern_variant', 'route_code', 'route', 'day_type']
     fields_to_index += ['ons', 'offs', 'load', 'actual_run_time', 'schedule_deviation', 'dwell_time'] # index some output fields too.
 
     # If you don't list each primary key field as a separate field to index
@@ -597,7 +597,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
                         monthly_resource_name = None
                     fields = parse(line)
                     named_fields = OrderedDict(zip(field_names,fields))
-                    route_code = named_fields['route'].strip() # The ETL framework must quietly be doing this stripping.
+                    route_code = named_fields['route_code'].strip() # The ETL framework must quietly be doing this stripping.
                     if route_code not in route_lookup.keys():
                         global missing_route_codes
 
