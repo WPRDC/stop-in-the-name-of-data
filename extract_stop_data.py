@@ -414,7 +414,7 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
 
 def pipeline_wrapper(job,package_id,monthly_resource_name,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size=5000,keep_same_name=False):
     resource_names = []
-    cumulate = True
+    cumulate = False # CKAN started to yield 504 errors once the cumulative resource got to be ~19 million records long.
     try:
         send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,chunk_size)
         if cumulate:
