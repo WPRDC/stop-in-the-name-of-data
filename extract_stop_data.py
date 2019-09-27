@@ -479,8 +479,8 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     schema = job['schema']
     fields0 = schema().serialize_to_ckan_fields()
     # Eliminate fields that we don't want to upload.
-    # fields0.pop(fields0.index({'type': 'text', 'id': 'day_type_code'}))
-    #fields0.pop(fields0.index({'type': 'text', 'id': 'party_name'}))
+    fields0.pop(fields0.index({'type': 'text', 'id': 'scheduled_trip_start_time_raw'}))
+    fields0.pop(fields0.index({'type': 'text', 'id': 'scheduled_stop_time_raw'}))
     # Add some new fields.
     #fields0.append({'id': 'assignee', 'type': 'text'})
     fields_to_publish = fields0
