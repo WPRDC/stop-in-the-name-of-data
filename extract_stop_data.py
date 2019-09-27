@@ -651,7 +651,10 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     routes_and_counts = [{'missing_route': route, 'records_count': count} for route, count in missing_route_codes.items()]
     write_or_append_to_csv('missing_routes.csv', routes_and_counts, ['missing_route', 'records_count'])
     if not mute_alerts:
-        send_to_slack("SITNOD was unable to find these route codes: {}".format(missing_route_codes))
+        msg = "SITNOD was unable to find these route codes: {}".format(missing_route_codes)
+        channel = "@david" #if test_mode else "#etl-hell"
+        send_to_slack(msg,username='sitnod ETL assistant',channel=channel,icon=':illuminati:')
+
 #print("Total collisions (within 5000-record chunks): {}".format(total_collisions))
 
 
@@ -732,5 +735,5 @@ if __name__ == '__main__':
         msg = ''.join('!! ' + line for line in lines)
         print(msg) # Log it or whatever here
         if not mute_alerts:
-            channel = "@david" if test_mode else "#etl-hell"
+            channel = "@david" #if test_mode else "#etl-hell"
             send_to_slack(msg,username='sitnod ETL assistant',channel=channel,icon=':illuminati:')
