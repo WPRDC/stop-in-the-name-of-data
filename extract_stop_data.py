@@ -447,7 +447,7 @@ def pipeline_wrapper(job,package_id,monthly_resource_name,cumulative_resource_na
     return resource_names
 
 
-stop_use_package_id = "812527ad-befc-4214-a4d3-e621d8230563" # Test package
+stop_use_package_id = "6672c43a-43fb-44e0-aaff-954fd175c651" # Stop-use production package
 
 jobs = [
     {
