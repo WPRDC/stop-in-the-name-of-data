@@ -382,7 +382,6 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     fields_to_publish = [f for f in schema().serialize_to_ckan_fields(capitalize=False) if f['id'] in field_names] # While
     # this fields_to_publish exists elsewhere in the code, it seems easier to reconstruct it here to allow
     # the schema to be altered than to pass yet another parameter (fields_to_publish).
-    ic(fields_to_publish)
 
     stop_use_pipeline = pl.Pipeline('stop_use_pipeline',
                                       'Pipeline for Bus Stop-Use Data',
