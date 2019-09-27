@@ -379,6 +379,10 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     else:
         time.sleep(1.0)
 
+    fields_to_publish = [f for f in schema().serialize_to_ckan_fields(capitalize=False) if f['id'] in field_names] # While
+    # this fields_to_publish exists elsewhere in the code, it seems easier to reconstruct it here to allow
+    # the schema to be altered than to pass yet another parameter (fields_to_publish).
+    ic(fields_to_publish)
 
     stop_use_pipeline = pl.Pipeline('stop_use_pipeline',
                                       'Pipeline for Bus Stop-Use Data',
@@ -392,7 +396,7 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
         .extract(pl.CSVExtractor, firstline_headers=True) \
         .schema(schema) \
         .load(pl.CKANDatastoreLoader, server,
-              fields=schema().serialize_to_ckan_fields(capitalize=False),
+              fields=fields_to_publish,
               package_id=package_id,
               #resource_id=resource_id,
               #resource_name=resource_name,
