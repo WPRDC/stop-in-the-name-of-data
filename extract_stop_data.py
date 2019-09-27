@@ -575,6 +575,7 @@ def process_job(job,use_local_files,clear_first,test_mode,slow_mode,start_at,mut
     # Never let any of the key fields have None values. It's just asking for
     # multiplicity problems on upsert.
 
+    assert len(set(fields_to_index) - set(field_names_to_publish)) == 0
     assert len(set(primary_keys) - set(field_names_to_publish)) == 0
 
     if len(filepaths) == 0:
