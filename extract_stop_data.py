@@ -363,7 +363,7 @@ def send_data_to_pipeline(package_id,resource_name,schema,list_of_dicts,field_na
     #target = '/Users/drw/WPRDC/Tax_Liens/foreclosure_data/raw-seminull-test.csv'
     #target = process_foreclosures.main(input = fixed_width_file)
 
-    server = "test-production" # Note that rocket-etl jobs are not (by default) getting
+    server = "production" # Note that rocket-etl jobs are not (by default) getting
     # package IDs from settings.json, since settings.json is being used for site-level
     # configuration, and package IDs are being hard-coded in ETL jobs (under /payload).
 
