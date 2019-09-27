@@ -684,7 +684,8 @@ if __name__ == '__main__':
     mute_alerts = False
     use_local_files = False
     clear_first = False
-    test_mode = not PRODUCTION # Use PRODUCTION boolean from parameters/local_parameters.py to set whether test_mode defaults to True or False
+    #test_mode = not PRODUCTION # Use PRODUCTION boolean from parameters/local_parameters.py to set whether test_mode defaults to True or False
+    test_mode = False
     slow_mode = False
     audit_missing_codes = False
     start_at = None
