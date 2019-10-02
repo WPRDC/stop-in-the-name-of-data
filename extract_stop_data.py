@@ -439,12 +439,12 @@ def pipeline_wrapper(job,package_id,monthly_resource_name,cumulative_resource_na
     except RuntimeError: # This is the error raised when an upsert fails with status code 504 (for instance).
         time.sleep(5) # Pause and then retry
         try:
-            send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,int(chunk_size/2))
+            send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,int(chunk_size/2)+1)
             if cumulate:
                 send_data_to_pipeline(package_id,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,False,chunk_size)
         except RuntimeError:
             time.sleep(15)
-            send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,int(chunk_size/4))
+            send_data_to_pipeline(package_id,monthly_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,clear_first,int(chunk_size/4)+1)
             if cumulate:
                 send_data_to_pipeline(package_id,cumulative_resource_name,schema,list_of_dicts,field_names_to_publish,primary_keys,fields_to_index,False,chunk_size)
     return resource_names
